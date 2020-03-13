@@ -6,7 +6,7 @@ The module is named **html5tagger** because it makes heavy use of the simplified
 pip install html5tagger
 ```
 
-Since the module is a single file with no dependencies, you may also just copy [html5tagger.py](https://github.com/Tronic/html5tagger/blob/master/html5tagger.py) directly into your project.
+Since the module is a single file with no dependencies, you may also just copy [html5tagger.py](https://github.com/Tronic/html5tagger/raw/master/html5tagger.py) directly into your project.
 
 ## Intro
 
@@ -90,10 +90,12 @@ Output formatted for readability:
 All content and attributes are automatically escaped. For instance, we can put the entire document into an iframe's srcdoc attribute:
 
 ```python
-E.iframe(width=400, height=200, srcdoc=doc)
+E.iframe(srcdoc=doc)
 ```
 
-<iframe width=400 height=200 srcdoc="<!DOCTYPE html><html lang=en><meta charset=&quot;utf-8&quot;><title>Test page</title><ul><li>Write documents in Python<li>Simple syntax<ul><li>No brackets or closing tags<li>Integrates with other code<ul><li>Easy<li>Efficient</ul></ul><li>Avoids whitespace problems common in templating</ul>"></iframe>
+```html
+<iframe srcdoc="<!DOCTYPE html><html lang=en><meta charset=&quot;utf-8&quot;><title>Test page</title><ul><li>Write documents in Python<li>Simple syntax<ul><li>No brackets or closing tags<li>Integrates with other code<ul><li>Easy<li>Efficient</ul></ul><li>Avoids whitespace problems common in templating</ul>"></iframe>
+```
 
 Boolean values convert into short attributes. Underscore at the end of name is ignored so that Python's reserved names such as **for** can be specified. Other underscores convert into hyphens.
 
