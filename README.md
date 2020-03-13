@@ -87,7 +87,7 @@ Output formatted for readability:
   </ul>
 ```
 
-All content and attributes are automatically escaped. For instance, we can put the entire document into an iframe's srcdoc attribute:
+All content and attributes are automatically escaped. For instance, we can put the entire document into an iframe's srcdoc attribute where only the minimal but necessary escaping is applied:
 
 ```python
 E.iframe(srcdoc=doc)
