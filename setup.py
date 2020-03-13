@@ -13,7 +13,7 @@ setup(
     packages=find_packages(),
     keywords=["HTML", "HTML5", "templating", "Jinja"],
     classifiers = [
-        "Development Status :: Development Status :: 5 - Production/Stable",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
