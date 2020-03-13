@@ -87,6 +87,8 @@ Output formatted for readability:
   </ul>
 ```
 
+## Escaping
+
 All content and attributes are automatically escaped. For instance, we can put the entire document into an iframe's srcdoc attribute where only the minimal but necessary escaping is applied:
 
 ```python
@@ -97,7 +99,11 @@ E.iframe(srcdoc=doc)
 <iframe srcdoc="<!DOCTYPE html><html lang=en><meta charset=&quot;utf-8&quot;><title>Test page</title><ul><li>Write documents in Python<li>Simple syntax<ul><li>No brackets or closing tags<li>Integrates with other code<ul><li>Easy<li>Efficient</ul></ul><li>Avoids whitespace problems common in templating</ul>"></iframe>
 ```
 
-Boolean values convert into short attributes. Underscore at the end of name is ignored so that Python's reserved names such as `for` can be specified. Other underscores convert into hyphens.
+## Name mangling and boolean attributes
+
+Underscore at the end of name is ignored so that Python's reserved names such as `for` can be specified. Other underscores convert into hyphens.
+
+Boolean values convert into short attributes.
 
 ```python
 E.input(type="checkbox", id="somebox", checked=True).label(for_="somebox", aria_role="img")("🥳")
