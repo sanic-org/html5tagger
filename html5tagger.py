@@ -1,16 +1,15 @@
 """Generate HTML5 documents directly from Python code."""
 
-import pkg_resources
-
-__version__ = pkg_resources.require(__name__)[0].version
-
-del pkg_resources
-
+__all__ = "Document", "E", "HTML"
+__version__ = "1.0.1"
 
 class HTML(str):
     """A HTML string that will not be escaped."""
 
     __html__ = _repr_html_ = str.__str__
+
+    def __repr__(self):
+        return f"HTML({super().__repr__()})"
 
 
 def escape(text):
