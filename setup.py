@@ -1,9 +1,7 @@
 from setuptools import setup, find_packages
-from html5tagger import __version__
 
 setup(
     name="html5tagger",
-    version=__version__,
     author="L. Kärkkäinen",
     author_email="tronic@noreply.users.github.com",
     description="Pythonic HTML5 generation without templating",
@@ -24,6 +22,8 @@ setup(
         "Operating System :: OS Independent",
     ],
     python_requires = ">=3.6",
+    use_scm_version=True,
+    setup_requires = ["setuptools_scm"],
     install_requires = [],
     include_package_data = True,
 )

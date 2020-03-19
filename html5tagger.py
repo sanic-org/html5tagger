@@ -1,10 +1,16 @@
 """Generate HTML5 documents directly from Python code."""
 
-__version__ = "1.0.0"
+import pkg_resources
+
+__version__ = pkg_resources.require(__name__)[0].version
+
+del pkg_resources
+
 
 class HTML(str):
     """A HTML string that will not be escaped."""
     __html__ = _repr_html_ = str.__str__
+
 
 def escape(text):
     text = str(text)
@@ -14,6 +20,7 @@ def escape(text):
         (">", "&gt;"),
     ]: text = text.replace(*rep)
     return HTML(text)
+
 
 def attributes(attrs):
     ret = ""
@@ -27,11 +34,13 @@ def attributes(attrs):
         ret += '=' + v
     return ret
 
+
 def mangle(name):
     """Mangle Python identifiers into HTML tag/attribute names.
 
     Underscores are converted into hyphens. Underscore at end is removed."""
     return name.rstrip("_").replace("_", "-")
+
 
 omit_endtag = {
     # Void elements:
@@ -43,6 +52,7 @@ omit_endtag = {
     "li", "dt", "dd",
     "optgroup", "option",
 }
+
 
 class Builder:
     """Builder generates a document with .elemname(attr1="value", ...) syntax.
@@ -129,6 +139,7 @@ class Builder:
         assert isinstance(builder, Builder), "Only Builders may be added. Use () for content."
         self._html += builder.__html__()
 
+
 def Document(*title, _urls = None, **html_attrs):
     """Construct a new document with a DOCTYPE and minimal structure.
 
@@ -155,9 +166,11 @@ def Document(*title, _urls = None, **html_attrs):
         else: raise ValueError("Unknown extension in " + url)
     return doc
 
+
 class MakeBuilder:
     """Use E.elemname or E(content) to create initially empty snippets."""
     def __getattr__(self, name): return getattr(Builder(), name)
     def __call__(self, *args, **kwargs): return Builder()(*args, **kwargs)
+
 
 E = MakeBuilder()
