@@ -24,7 +24,7 @@ print(snippet)  # Print snippet's code
 <table><tr><th>First<th>Second<th>Third<tr><td>1<td>2<td>3</table>
 ```
 
-The `Builder` object converts to HTML string when printed or by `str(snippet)`. [Jupyter Notebook](https://jupyter.org/) and others support automatic display in HTML by `_repr_html_` and `__html__` conversions.
+The `Builder` object converts to HTML string when printed or by `str(snippet)`. [Jupyter Notebook](https://jupyter.org/) and others may render them automatically as HTML, unless explicitly converted into string first.
 
 In contrast to `E` which creates snippets, `Document` creates a new document (i.e. it begins with a DOCTYPE declaration). A minimal head structure is created using any provided title and/or urls. `html` attributes may be defined by keyword arguments.
 
@@ -112,6 +112,12 @@ E.input(type="checkbox", id="somebox", checked=True).label(for_="somebox", aria_
 ```html
 <input type=checkbox id=somebox checked><label for=somebox aria-role=img>🥳</label>
 ```
+
+## Preformatted HTML
+
+All content is automatically escaped, unless it provides an `__html__` method that returns HTML string. Similarly, the builder objects of this module expose `__html__` and `_repr_html_` accessors that allow them to be rendered as HTML in Jupyter Notebooks and various other systems that follow this convention.
+
+Any preformatted HTML may be wrapped in `html5tagger.HTML(string_of_html)` to avoid it being escaped when included in a document, as the HTML class has those accessors.
 
 ## Performance
 
