@@ -1,12 +1,14 @@
 # Pythonic HTML5 generation
 
-The module is named **html5tagger** because it makes heavy use of the simplified HTML5 syntax where many opening and closing tags are optional. Tags are written with no consideration of DOM tree structure, which the browsers determine automatically based on the content that follows. No *pretty printing* is added to the HTML code because such extra whitespace would create unnecessary DOM nodes, often affecting output formatting as well.
+*Safer and faster than Jinja2, create your entire document template in Python*
+
+The module is named **html5tagger** because uses the simplified HTML5 syntax where many opening and closing tags are optional. Tags are written with no consideration of DOM tree structure.
 
 ```
 pip install html5tagger
 ```
 
-Since the module is a single file with no dependencies, you may also just copy [html5tagger.py](https://github.com/Tronic/html5tagger/raw/master/html5tagger.py) directly into your project.
+Very lightweight, fast, pure Python and no dependencies. It uses special Python syntax as a domain-specific language for generating HTML tags.
 
 ## Intro
 
@@ -15,93 +17,90 @@ You can create HTML snippets by starting with `E` (for an empty builder) and add
 ```python
 from html5tagger import Document, E
 
-snippet = E.table(E.tr.th("First").th("Second").th("Third").tr.td(1).td(2).td(3))
+# Create a document using template placeholders TitleText and Head
+doc = Document(E.TitleText_("Demo"),  lang="en", _urls=[
+    "style.css", "favicon.png", "manifest.json"
+])
+# Upper case names are template placeholders. You can modify them later.
+doc.Head_
+doc.h1.TitleText_
 
-print(snippet)  # Print snippet's code
+doc.p("A paragraph with ").a("a link", href="/files")(" and ").em("formatting")
+
+# Use with for complex nesting (often not needed)
+with doc.table(id="data"):
+    doc.tr.th("First").th("Second").th("Third")
+    doc.TableRows_
+
+# Let's add something to the template fields
+doc.Head._script("console.log('</script> escaping is weird')")
+
+table = doc.TableRows
+for row in range(10):
+    table.tr
+    for col in range(3): table.td(row * col)
+
+# Or dispose the data
+doc.TableRows = None
 ```
+
+You can `str(doc)` or just print it to get the HTML code. If used in a Jupyter Notebook or with any other system that supports `__html__` or `_repr_html_`, it will render as HTML. When used via `repr(doc)` the templating tags are visible:
 
 ```html
-<table><tr><th>First<th>Second<th>Third<tr><td>1<td>2<td>3</table>
+>>> doc
+《Document Builder》
+<!DOCTYPE html><html lang=en><meta charset="utf-8"><title>《TitleText:Demo》</title><link href="style.css" rel=stylesheet><link href="favicon.png" rel=icon type="image/png"><link href="manifest.json" rel=manifest>《Head:<script>console.log('<\/script> escaping is weird')</script>》<h1>《TitleText:Demo》</h1><p>A paragraph with <a href="/files">a link</a> and <em>formatting</em><table id=data><tr><th>First<th>Second<th>Third《TableRows》</table>
 ```
 
-The `Builder` object converts to HTML string when printed or by `str(snippet)`. [Jupyter Notebook](https://jupyter.org/) and others may render them automatically as HTML, unless explicitly converted into string first.
+The actual HTML output is similar. No whitespace is added to the document, it is all on one line, unless the content contains newlines. Similarly you may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is the HTML5 part: the document is standards-compliant with a lot less cruft.
 
-In contrast to `E` which creates snippets, `Document` creates a new document (i.e. it begins with a DOCTYPE declaration). A minimal head structure is created using any provided title and/or urls. `html` attributes may be defined by keyword arguments.
+The `Document` function creates a full document, and optionally adds typical headers that are hard to remember be yourself. This is in contrast to `E` that creates bare HTML snippets with no DOCTYPE or anything extra.
 
-```python
-Document("Test page", lang="en")
-```
+Everything generally chains, i.e. returns self, so that you can add more tags on one line.
 
-```html
-<!DOCTYPE html><html lang=en><meta charset="utf-8"><title>Test page</title>
-```
+## Templating
 
-This is a valid document by itself. `</head><body>` and `</body></html>` are not needed in HTML5, and thus any content may simply be appended to this, without ever *closing* the document.
+Is you use templating tags, you can access them via `doc.TitleText` (no underscore at the end), and have only a part of document printed out that way. Underscore at the end is used when the tag is added to a document, it may be followed by content in parenthesis, but any further tags on the same line go to the original document - not into the template.
 
-You can also add your js, css, favicon and manifest files:
-
-```python
-Document(_urls=("style.css", "logo.png", "jquery.js"))
-```
-
-```html
-<!DOCTYPE html>
-<link rel=stylesheet href="style.css">
-<link rel=icon href="logo.png", type="image/png">
-<script src="jquery.js"></script>
-```
+In contrast to `E` which creates snippets, `Document` creates a new document (i.e. it begins with a DOCTYPE declaration). A minimal header structure is created using any provided title and/or urls. `html` attributes may be defined by keyword arguments.
 
 ## Nesting
 
 Explicit nesting needs to be used for elements such as `table` and `ul` where contents may be provided as sub-snippet parameters, or by `with` blocks:
 
 ```python
-doc = Document("Test page", lang="en")
 with doc.ul:  # Nest using the with statement
-    doc.li("Write documents in Python").li("Simple syntax")
-    with doc.ul:
-        doc.li("No brackets or closing tags").li("Integrates with other code")
-        doc.ul(E.li("Easy").li("Efficient"))  # Nest using (...)
-    doc.li("Avoids whitespace problems common in templating")
-```
-
-Output formatted for readability:
-
-```html
-<!DOCTYPE html>
-<html lang=en>
-  <meta charset="utf-8">
-  <title>Test page</title>
-  <ul>
-    <li>Write documents in Python
-    <li>Simple syntax
-      <ul>
-        <li>No brackets or closing tags
-        <li>Integrates with other code
-          <ul>
-            <li>Easy
-            <li>Efficient
-          </ul>
-      </ul>
-    <li>Avoids whitespace problems common in templating
-  </ul>
+    doc.li("Write documents in Python")
+    doc.li("Simple syntax").ul(id="inner").InnerList_  # Nest using template
+    doc.li("No brackets or closing tags")
+    doc.ul(E.li("Easy").li("Peasy"))  # Nest using (...)
 ```
 
 ## Escaping
 
-All content and attributes are automatically escaped. For instance, we can put the entire document into an iframe's srcdoc attribute where only the minimal but necessary escaping is applied:
+All content and attributes are automatically escaped. For instance, we can put the entire document into an iframe's srcdoc attribute where only the minimal but necessary escaping is applied. Use custom methods `_script`, `_style` and `_comment` for corresponding inline formats, to follow their custom escaping rules.
 
 ```python
-E.iframe(srcdoc=doc)
+doc = Document("Escaping & Context")
+doc._style('h1::after {content: "</Style>"}').h1("<Escape>")
+doc._comment("All-->OK")
+doc.iframe(srcdoc=Document().p("&amp; is used for &"))
 ```
 
 ```html
-<iframe srcdoc="<!DOCTYPE html><html lang=en><meta charset=&quot;utf-8&quot;><title>Test page</title><ul><li>Write documents in Python<li>Simple syntax<ul><li>No brackets or closing tags<li>Integrates with other code<ul><li>Easy<li>Efficient</ul></ul><li>Avoids whitespace problems common in templating</ul>"></iframe>
+<!DOCTYPE html><meta charset="utf-8"><title>Escaping &amp; Context</title>
+<style>h1::after {content: "<\/Style>"}</style><h1>&lt;Escape></h1>
+<!--All‒‒>OK-->
+<iframe srcdoc="<!DOCTYPE html><p>&amp;amp;amp; is used for &amp;amp;"></iframe>
 ```
+
+Works perfectly in browsers.
 
 ## Name mangling and boolean attributes
 
-Underscore at the end of name is ignored so that Python's reserved names such as `for` can be specified. Other underscores convert into hyphens.
+Underscore at the end of name is ignored so that `class_` and `for_` among other attributes may be used despite being reserved words in Python. Other underscores convert into hyphens.
+
+⚠️ The above only is true for HTML elements and attributes, but template placeholders only use an ending underscore to denote that the it is to be placed on the document, rather than be fetched for use.
 
 Boolean values convert into short attributes.
 
@@ -115,26 +114,30 @@ E.input(type="checkbox", id="somebox", checked=True).label(for_="somebox", aria_
 
 ## Preformatted HTML
 
-All content is automatically escaped, unless it provides an `__html__` method that returns HTML string. Similarly, the builder objects of this module expose `__html__` and `_repr_html_` accessors that allow them to be rendered as HTML in Jupyter Notebooks and various other systems that follow this convention.
+All content is automatically escaped, unless it provides an `__html__` method that returns a string in HTML format. Similarly, the builder objects of this module expose `__html__` and `_repr_html_` accessors that allow them to be rendered as HTML in Jupyter Notebooks and various other systems that follow this convention.
 
 Any preformatted HTML may be wrapped in `html5tagger.HTML(string_of_html)` to avoid it being escaped when included in a document, as the HTML class has those accessors.
+
+⚠️ Do not use `HTML()` for text, in particular not on messages sent by users, that may contain HTML that you didn't intend to execute as HTML.
 
 ## Performance
 
 ```python
 %timeit str(Document("benchmarking", lang="en", _urls=("foo.js", "bar.js")))
+14 µs ± 153 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)
 ```
 
-    35.7 µs ± 1.11 µs per loop (mean ± std. dev. of 7 runs, 10000 loops each)
+Jinja2 renders similar document from memory template within about 10 µs but it doesn't need to format any of the HTML. When Templating is similarly used with html5tagger, the rendering times drop to about 4 µs.
 
-Unless you are creating very large documents, this should be quite fast enough.
+In the above benchmark html5tagger created the entire document from scratch, one element and attribute at a time. Unless you are creating very large documents dynamically, this should be quite fast enough.
 
-Traditional web frameworks like [Django](https://www.djangoproject.com/) and [Flask](https://palletsprojects.com/p/flask/) are probably much slower. [Sanic](https://sanic.readthedocs.io/en/latest/) users might need to optimise some more to stay above 20000 req/s or so.
 
 ## Further development
 
 There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable.
 
-If there is need, a future version of this module may support templating where a document is baked into a list of string snippets, where dynamic content may be injected much faster than what Jinja2 and other regex-based templating engines can do. Other than that, no further development other than maintenance is planned.
+In 2023 support for templating was added, allowing documents to be preformatted for all their static parts (as long strings), with only templates filled in between. This is a work on progress and has not been optimized yet.
+
+Additionally, `_script` and `_style` special methods were added in 2023. These may eventually replace also the non-underscored automatic versions but for now a separate method was easier to implement.
 
 Pull requests are still welcome.
