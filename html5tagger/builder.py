@@ -1,5 +1,5 @@
 from .html5 import omit_endtag
-from .util import mangle, escape, escape_special, attributes
+from .util import mangle, escape, escape_special, esc_script, esc_style, attributes
 
 
 class Builder:
@@ -45,8 +45,8 @@ class Builder:
             frag.brief if isinstance(frag, Builder) else frag
             for frag in self._allpieces
         ])
-        if len(ret) > 1000:
-            ret = f"{ret[:100]} ··· {ret[-100:]}"
+        if len(ret) > 10000:
+            ret = f"{ret[:1000]} ··· {ret[-1000:]}"
         return f"《{self.name}》\n{ret}" if len(ret) > 100 else self.brief
 
     def __str__(self):
