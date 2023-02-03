@@ -1,33 +1,40 @@
-# Pythonic HTML5 generation
+# HTML5 Generation with html5tagger: Fast, Pure Python, No Dependencies
 
-*Safer and faster than Jinja2, create your entire document template in Python*
+If you're looking for a more efficient and streamlined way to generate HTML5, look no further than html5tagger! This module provides a simplified HTML5 syntax, so you can create your entire document template using only Python. Say goodbye to the clunky and error-prone process of manually writing HTML tags.
 
-The module is named **html5tagger** because uses the simplified HTML5 syntax where many opening and closing tags are optional. Tags are written with no consideration of DOM tree structure.
+With html5tagger, you can safely and quickly generate HTML5 without any dependencies, making it the perfect solution for developers who value speed and simplicity. And with its pure Python implementation, you'll never have to worry about compatibility issues or adding extra libraries to your project.
 
-```
+Ready to streamline your page rendering process? It is super fast to get started. Trust us, once you try html5tagger, you'll never go back to Jinja2 or manual HTML writing again!
+
+```sh
 pip install html5tagger
 ```
 
-Very lightweight, fast, pure Python and no dependencies. It uses special Python syntax as a domain-specific language for generating HTML tags.
-
 ## Intro
 
-You can create HTML snippets by starting with `E` (for an empty builder) and adding elements with dot notation:
+html5tagger provides two starting points for HTML generation: `E` as an empty builder for creating HTML snippets, or `Document` for generating full HTML documents with a DOCTYPE declaration. Both produce a `Builder` object, in case you need that for type annotations.
 
+To get started, simply import both of them and start adding elements with dot notation:
 ```python
 from html5tagger import Document, E
 
 # Create a document using template placeholders TitleText and Head
-doc = Document(E.TitleText_("Demo"),  lang="en", _urls=[
-    "style.css", "favicon.png", "manifest.json"
-])
-# Upper case names are template placeholders. You can modify them later.
-doc.Head_
-doc.h1.TitleText_
+doc = Document(
+    E.TitleText_,           # The first argument (optional) to add <title>
+    lang="en",              # Keyword arguments for <html>
 
+    # Just list the resources you need, no need to remember link/script tags
+    _urls=[ "style.css", "favicon.png", "manifest.json" ]
+)
+
+# Upper case names are template variables. You can modify them later.
+doc.Head_
+doc.h1.TitleText_("Demo")   # Goes inside <h1> and updates <title> as well
+
+# This has been a hard problem for DOM other such generators:
 doc.p("A paragraph with ").a("a link", href="/files")(" and ").em("formatting")
 
-# Use with for complex nesting (often not needed)
+# Use with for complex nesting (not often needed)
 with doc.table(id="data"):
     doc.tr.th("First").th("Second").th("Third")
     doc.TableRows_
@@ -38,9 +45,10 @@ doc.Head._script("console.log('</script> escaping is weird')")
 table = doc.TableRows
 for row in range(10):
     table.tr
-    for col in range(3): table.td(row * col)
+    for col in range(3):
+        table.td(row * col)
 
-# Or dispose the data
+# Or remove the table data we just added
 doc.TableRows = None
 ```
 
@@ -71,21 +79,25 @@ Everything generally chains, i.e. returns self, so that you can add more tags on
 
 ## Templating
 
-Is you use templating tags, you can access them via `doc.TitleText` (no underscore at the end), and have only a part of document printed out that way. Underscore at the end is used when the tag is added to a document, it may be followed by content in parenthesis, but any further tags on the same line go to the original document - not into the template.
-
-In contrast to `E` which creates snippets, `Document` creates a new document (i.e. it begins with a DOCTYPE declaration). A minimal header structure is created using any provided title and/or urls. `html` attributes may be defined by keyword arguments.
+Use template variables to build a document once and only update the dynamic parts at render time for faster performance. Access template variables via doc.TitleText and add content in parenthesis after the tag name. The underscore at the end of a tag name indicates the tag is added to the document and can have content in parenthesis, but any further tags on the same line go to the original document, not the template.
 
 ## Nesting
 
-Explicit nesting needs to be used for elements such as `table` and `ul` where contents may be provided as sub-snippet parameters, or by `with` blocks:
+⚠️ A tag is automatically closed when you add content to it, or prior to another tag.
+
+In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close.
+
+For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding element.
 
 ```python
-with doc.ul:  # Nest using the with statement
-    doc.li("Write documents in Python")
+with doc.ul:  # Nest using with
+    doc.li("Write HTML in Python")
     doc.li("Simple syntax").ul(id="inner").InnerList_  # Nest using template
-    doc.li("No brackets or closing tags")
+    doc.li("No need for brackets or closing tags")
     doc.ul(E.li("Easy").li("Peasy"))  # Nest using (...)
 ```
+
+Where unintentional nesting of a following element needs to be prevented, use `(None)` as content that causes the offending element to be kept empty.
 
 ## Escaping
 
