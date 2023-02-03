@@ -49,7 +49,18 @@ You can `str(doc)` or just print it to get the HTML code. If used in a Jupyter N
 ```html
 >>> doc
 《Document Builder》
-<!DOCTYPE html><html lang=en><meta charset="utf-8"><title>《TitleText:Demo》</title><link href="style.css" rel=stylesheet><link href="favicon.png" rel=icon type="image/png"><link href="manifest.json" rel=manifest>《Head:<script>console.log('<\/script> escaping is weird')</script>》<h1>《TitleText:Demo》</h1><p>A paragraph with <a href="/files">a link</a> and <em>formatting</em><table id=data><tr><th>First<th>Second<th>Third《TableRows》</table>
+<!DOCTYPE html><html lang=en><meta charset="utf-8">
+<title>《TitleText:Demo》</title>
+<link href="style.css" rel=stylesheet>
+<link href="favicon.png" rel=icon type="image/png">
+<link href="manifest.json" rel=manifest>
+《Head:<script>console.log('<\/script> escaping is weird')</script>》
+<h1>《TitleText:Demo》</h1>
+<p>A paragraph with <a href="/files">a link</a> and <em>formatting</em>
+<table id=data>
+  <tr><th>First<th>Second<th>Third
+  《TableRows》
+</table>
 ```
 
 The actual HTML output is similar. No whitespace is added to the document, it is all on one line, unless the content contains newlines. Similarly you may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is the HTML5 part: the document is standards-compliant with a lot less cruft.
