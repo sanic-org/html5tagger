@@ -1,4 +1,3 @@
-from .builder import Builder
 from .html5 import omit_endtag
 from .util import mangle, escape, escape_special, attributes
 
