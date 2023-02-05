@@ -23,7 +23,11 @@ class Builder:
 
     @property
     def _allpieces(self):
-        return *self._pieces, self._endtag, *self._stack[::-1]
+        retval = []
+        retval.extend(self._pieces)
+        retval.append(self._endtag)
+        retval.extend(self._stack[::-1])
+        return tuple(retval)
 
     def _endtag_close(self):
         if self._endtag:
