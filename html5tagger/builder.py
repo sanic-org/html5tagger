@@ -1,5 +1,5 @@
 from .html5 import omit_endtag
-from .util import mangle, escape, escape_special, esc_script, esc_style, attributes
+from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
 
 
 class Builder:
@@ -23,7 +23,11 @@ class Builder:
 
     @property
     def _allpieces(self):
-        return *self._pieces, self._endtag, *self._stack[::-1]
+        retval = []
+        retval.extend(self._pieces)
+        retval.append(self._endtag)
+        retval.extend(self._stack[::-1])
+        return tuple(retval)
 
     def _endtag_close(self):
         if self._endtag:
