@@ -1,4 +1,6 @@
 import re
+from typing import Any, Dict
+
 
 class HTML(str):
     """A HTML string that will not be escaped."""
@@ -9,18 +11,20 @@ class HTML(str):
         return f"HTML({super().__repr__()})"
 
 
-def escape(text):
+def escape(text: str):
     return HTML(str(text).replace("&", "&amp;").replace("<", "&lt;"))
+
 
 # Inline styles and scripts only escape the specific end tag
 esc_style = re.compile("</(style>)", re.IGNORECASE)
 esc_script = re.compile("</(script>)", re.IGNORECASE)
 
-def escape_special(tag: re, text):
-    return HTML(tag.sub(r'<\\/\1', text))
+
+def escape_special(tag: re.Pattern[str], text: str):
+    return HTML(tag.sub(r"<\\/\1", text))
 
 
-def attributes(attrs):
+def attributes(attrs: Dict[str, Any]):
     ret = ""
     for k, v in attrs.items():
         k = mangle(k)
@@ -36,7 +40,7 @@ def attributes(attrs):
     return ret
 
 
-def mangle(name):
+def mangle(name: str):
     """Mangle Python identifiers into HTML tag/attribute names.
 
     Underscores are converted into hyphens. Underscore at end is removed."""
