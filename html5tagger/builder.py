@@ -101,7 +101,7 @@ class Builder:
         template._clear()
         template(value)
 
-    def __call__(self, *_inner_content: str, **_attrs: Any):
+    def __call__(self, *_inner_content: Any, **_attrs: Any):
         """Add attributes and content to the current tag, or append to the document."""
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):

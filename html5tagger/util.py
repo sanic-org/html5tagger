@@ -1,5 +1,5 @@
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Pattern
 
 
 class HTML(str):
@@ -20,7 +20,7 @@ esc_style = re.compile("</(style>)", re.IGNORECASE)
 esc_script = re.compile("</(script>)", re.IGNORECASE)
 
 
-def escape_special(tag: re.Pattern[str], text: str):
+def escape_special(tag: Pattern[str], text: str):
     return HTML(tag.sub(r"<\\/\1", text))
 
 
