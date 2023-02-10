@@ -109,7 +109,9 @@ class Builder:
         # Add attributes and content to the current tag
         if _attrs:
             tag = self._pieces[-1]
-            assert (tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</")), f"Can only add attrs to opening tags, got {tag!r}"
+            assert (
+                tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</")
+            ), f"Can only add attrs to opening tags, got {tag!r}"
             self._pieces[-1] = f"{tag[:-1]}{attributes(_attrs)}>"
         if _inner_content:
             self._(*_inner_content)
@@ -121,9 +123,7 @@ class Builder:
         for c in _content:
             if c is None:
                 continue
-            assert (
-                c is not self
-            ), "Cannot add document to itself. Use E.elemname for sub snippets."
+            assert c is not self, "Cannot add document to itself. Use E.elemname for sub snippets."
             # If it is our template, add the Builder, otherwise expand pieces
             if isinstance(c, Builder):
                 if c.name in self._templates:
