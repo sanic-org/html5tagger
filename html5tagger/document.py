@@ -3,9 +3,7 @@ from .builder import Builder
 from .util import HTML
 
 
-def Document(
-    *title: str, _urls: Optional[List[str]] = None, **html_attrs: Any
-) -> Builder:
+def Document(*title: str, _urls: Optional[List[str]] = None, **html_attrs: Any) -> Builder:
     """Construct a new document with a DOCTYPE and minimal structure.
 
     The html tag is added if any attributes are provided for it.

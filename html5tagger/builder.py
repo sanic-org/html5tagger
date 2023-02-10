@@ -1,4 +1,6 @@
+from __future__ import annotations
 from typing import Any, Dict, List, Union
+
 from .html5 import omit_endtag
 from .util import mangle, escape, escape_special, esc_script, esc_style, attributes
 
@@ -17,14 +19,14 @@ class Builder:
         self._clear()
 
     def _clear(self):
-        self._pieces: List[Union[str, "Builder"]] = []  # Document content
-        self._templates: Dict[str, "Builder"] = {}  # Template builders
+        self._pieces: List[Union[str, Builder]] = []  # Document content
+        self._templates: Dict[str, Builder] = {}  # Template builders
         self._endtag = ""
         self._stack: List[str] = []
 
     @property
     def _allpieces(self):
-        retval: List[Union[str, "Builder"]] = []
+        retval: List[Union[str, Builder]] = []
         retval.extend(self._pieces)
         retval.append(self._endtag)
         retval.extend(self._stack[::-1])
@@ -46,12 +48,10 @@ class Builder:
         return f"《{self.name}{value}》"
 
     def __repr__(self):
-        ret = "".join(
-            [
-                frag.brief if isinstance(frag, Builder) else frag
-                for frag in self._allpieces
-            ]
-        )
+        ret = "".join([
+            frag.brief if isinstance(frag, Builder) else frag
+            for frag in self._allpieces
+        ])
         if len(ret) > 10000:
             ret = f"{ret[:1000]} ··· {ret[-1000:]}"
         return f"《{self.name}》\n{ret}" if len(ret) > 100 else self.brief
@@ -76,9 +76,7 @@ class Builder:
             builder = self._templates.get(name)
             if not builder:
                 if not add_to_doc:
-                    raise AttributeError(
-                        f"Template {name} not found. Use doc.{name}_ to add it to the document."
-                    )
+                    raise AttributeError(f"Template {name} not found. Use doc.{name}_ to add it to the document.")
                 builder = self._templates[name] = Builder(name=name)
             if add_to_doc:
                 self._pieces.append(builder)
@@ -111,9 +109,7 @@ class Builder:
         # Add attributes and content to the current tag
         if _attrs:
             tag = self._pieces[-1]
-            assert (
-                tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</")
-            ), f"Can only add attrs to opening tags, got {tag!r}"
+            assert (tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</")), f"Can only add attrs to opening tags, got {tag!r}"
             self._pieces[-1] = f"{tag[:-1]}{attributes(_attrs)}>"
         if _inner_content:
             self._(*_inner_content)
@@ -137,15 +133,13 @@ class Builder:
                     self._pieces += c._pieces
             # Other type of data, convert to HTML str
             else:
-                self._pieces.append(
-                    str(c.__html__() if hasattr(c, "__html__") else escape(c))
-                )
+                self._pieces.append(str(c.__html__() if hasattr(c, "__html__") else escape(c)))
         return self
 
     def _optimize(self):
         """Join adjacent text fragments."""
         print("optimize")
-        newfrags: List[Union[str, "Builder"]] = []
+        newfrags: List[Union[str, Builder]] = []
         strfrags: List[str] = []
         for frag in self._pieces:
             if isinstance(frag, str) or frag.name not in self._templates:
