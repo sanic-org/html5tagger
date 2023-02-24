@@ -18,9 +18,6 @@ To get started, simply import both of them and start adding elements with dot no
 ```python
 E.p("Powered by:").br.a("html5tagger", href="...")
 ```
-
-The above creates a *snippet*
-
 ```html
 <p>Powered by:<br><a href="...">html5tagger</a>
 ```
