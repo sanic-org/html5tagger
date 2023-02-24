@@ -16,6 +16,18 @@ html5tagger provides two starting points for HTML generation: `E` as an empty bu
 
 To get started, simply import both of them and start adding elements with dot notation:
 ```python
+E.p("Powered by:").br.a("html5tagger", href="...")
+```
+
+The above creates a *snippet*
+
+```html
+<p>Powered by:<br><a href="...">html5tagger</a>
+```
+
+A more complete example with template placeholders and other features:
+
+```python
 from html5tagger import Document, E
 
 # Create a document using template placeholders TitleText and Head
