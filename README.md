@@ -22,15 +22,15 @@ E.p("Powered by:").br.a("html5tagger", href="...")
 <p>Powered by:<br><a href="...">html5tagger</a>
 ```
 
-A more complete example with template placeholders and other features:
+A more complete example with template variables and other features:
 
 ```python
 from html5tagger import Document, E
 
-# Create a document using template placeholders TitleText and Head
+# Create a document
 doc = Document(
-    E.TitleText_,           # The first argument (optional) to add <title>
-    lang="en",              # Keyword arguments for <html>
+    E.TitleText_,           # The first argument is for <title>, adding variable TitleText
+    lang="en",              # Keyword arguments for <html> attributes
 
     # Just list the resources you need, no need to remember link/script tags
     _urls=[ "style.css", "favicon.png", "manifest.json" ]
@@ -48,7 +48,7 @@ with doc.table(id="data"):
     doc.tr.th("First").th("Second").th("Third")
     doc.TableRows_
 
-# Let's add something to the template fields
+# Let's add something to the template variables
 doc.Head._script("console.log('</script> escaping is weird')")
 
 table = doc.TableRows
