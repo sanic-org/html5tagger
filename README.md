@@ -90,7 +90,7 @@ Use template variables to build a document once and only update the dynamic part
 
 In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close. This module does not use closing tags for any elements where those are optional or forbidden.
 
-A tag is automatically closed when you add content to it or when another tag is added. Setting attributes only does not close a tag. Use `None` to force a tag closed without content.
+A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element. Use `(None)` to close an empty element if any subsequent content is not meant to go inside it, e.g. `doc.script(None, src="...")`.
 
 For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
 
@@ -101,8 +101,6 @@ with doc.ul:  # Nest using with
     doc.li("No need for brackets or closing tags")
     doc.ul(E.li("Easy").li("Peasy"))  # Nest using (...)
 ```
-
-Where unintentional nesting of a following element needs to be prevented, use `(None)` as content that causes the offending element to be kept empty.
 
 ## Escaping
 
