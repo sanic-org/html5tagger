@@ -14,7 +14,7 @@ pip install html5tagger
 
 html5tagger provides two starting points for HTML generation: `E` as an empty builder for creating HTML snippets, or `Document` for generating full HTML documents with a DOCTYPE declaration. Both produce a `Builder` object, in case you need that for type annotations.
 
-To get started, simply import both of them and start adding elements with dot notation:
+Create a snippet and add tags by dot notation:
 ```python
 E.p("Powered by:").br.a("html5tagger", href="...")
 ```
@@ -22,7 +22,7 @@ E.p("Powered by:").br.a("html5tagger", href="...")
 <p>Powered by:<br><a href="...">html5tagger</a>
 ```
 
-A more complete example with template variables and other features:
+A complete example with template variables and other features:
 
 ```python
 from html5tagger import Document, E
@@ -61,7 +61,7 @@ for row in range(10):
 doc.TableRows = None
 ```
 
-You can `str(doc)` or just print it to get the HTML code. If used in a Jupyter Notebook or with any other system that supports `__html__` or `_repr_html_`, it will render as HTML. When used via `repr(doc)` the templating tags are visible:
+You can `str(doc)` to get the HTML code, and using `doc` directly usually has the desired effect as well (e.g. giving HTML responses). Jupyter Notebooks render it as HTML. For debugging, use `repr(doc)` where the templating variables are visible:
 
 ```html
 >>> doc
@@ -82,7 +82,7 @@ You can `str(doc)` or just print it to get the HTML code. If used in a Jupyter N
 
 The actual HTML output is similar. No whitespace is added to the document, it is all on one line, unless the content contains newlines. Similarly you may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is the HTML5 part: the document is standards-compliant with a lot less cruft.
 
-The `Document` function creates a full document, and optionally adds typical headers that are hard to remember be yourself. This is in contrast to `E` that creates bare HTML snippets with no DOCTYPE or anything extra.
+The `Document` function creates a minimal valid document with the given attributes, title and resource files. This is in contrast to `E` that creates bare HTML snippets with no DOCTYPE or anything extra.
 
 Everything generally chains, i.e. returns self, so that you can add more tags on one line.
 
