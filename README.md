@@ -16,7 +16,7 @@ html5tagger provides two starting points for HTML generation: `E` as an empty bu
 
 Create a snippet and add tags by dot notation:
 ```python
-E.p("Powered by:").br.a("html5tagger", href="...")
+E.p("Powered by:").br.a(href="...")("html5tagger")
 ```
 ```html
 <p>Powered by:<br><a href="...">html5tagger</a>
@@ -80,11 +80,7 @@ You can `str(doc)` to get the HTML code, and using `doc` directly usually has th
 </table>
 ```
 
-The actual HTML output is similar. No whitespace is added to the document, it is all on one line, unless the content contains newlines. Similarly you may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is the HTML5 part: the document is standards-compliant with a lot less cruft.
-
-The `Document` function creates a minimal valid document with the given attributes, title and resource files. This is in contrast to `E` that creates bare HTML snippets with no DOCTYPE or anything extra.
-
-Everything generally chains, i.e. returns self, so that you can add more tags on one line.
+The actual HTML output is similar. No whitespace is added to the document, it is all on one line unless the content contains newlines. You may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is HTML5: the document is standards-compliant with a lot less cruft.
 
 ## Templating
 
@@ -92,11 +88,11 @@ Use template variables to build a document once and only update the dynamic part
 
 ## Nesting
 
-⚠️ A tag is automatically closed when you add content to it, or prior to another tag.
+In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close. This module does not use closing tags for any elements where those are optional or forbidden.
 
-In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close.
+A tag is automatically closed when you add content to it or when another tag is added. Setting attributes only does not close a tag. Use `None` to force a tag closed without content.
 
-For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding element.
+For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
 
 ```python
 with doc.ul:  # Nest using with
