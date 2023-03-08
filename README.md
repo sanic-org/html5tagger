@@ -14,14 +14,23 @@ pip install html5tagger
 
 html5tagger provides two starting points for HTML generation: `E` as an empty builder for creating HTML snippets, or `Document` for generating full HTML documents with a DOCTYPE declaration. Both produce a `Builder` object, in case you need that for type annotations.
 
-To get started, simply import both of them and start adding elements with dot notation:
+Create a snippet and add tags by dot notation:
+```python
+E.p("Powered by:").br.a(href="...")("html5tagger")
+```
+```html
+<p>Powered by:<br><a href="...">html5tagger</a>
+```
+
+A complete example with template variables and other features:
+
 ```python
 from html5tagger import Document, E
 
-# Create a document using template placeholders TitleText and Head
+# Create a document
 doc = Document(
-    E.TitleText_,           # The first argument (optional) to add <title>
-    lang="en",              # Keyword arguments for <html>
+    E.TitleText_,           # The first argument is for <title>, adding variable TitleText
+    lang="en",              # Keyword arguments for <html> attributes
 
     # Just list the resources you need, no need to remember link/script tags
     _urls=[ "style.css", "favicon.png", "manifest.json" ]
@@ -39,7 +48,7 @@ with doc.table(id="data"):
     doc.tr.th("First").th("Second").th("Third")
     doc.TableRows_
 
-# Let's add something to the template fields
+# Let's add something to the template variables
 doc.Head._script("console.log('</script> escaping is weird')")
 
 table = doc.TableRows
@@ -52,7 +61,7 @@ for row in range(10):
 doc.TableRows = None
 ```
 
-You can `str(doc)` or just print it to get the HTML code. If used in a Jupyter Notebook or with any other system that supports `__html__` or `_repr_html_`, it will render as HTML. When used via `repr(doc)` the templating tags are visible:
+You can `str(doc)` to get the HTML code, and using `doc` directly usually has the desired effect as well (e.g. giving HTML responses). Jupyter Notebooks render it as HTML. For debugging, use `repr(doc)` where the templating variables are visible:
 
 ```html
 >>> doc
@@ -71,11 +80,7 @@ You can `str(doc)` or just print it to get the HTML code. If used in a Jupyter N
 </table>
 ```
 
-The actual HTML output is similar. No whitespace is added to the document, it is all on one line, unless the content contains newlines. Similarly you may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is the HTML5 part: the document is standards-compliant with a lot less cruft.
-
-The `Document` function creates a full document, and optionally adds typical headers that are hard to remember be yourself. This is in contrast to `E` that creates bare HTML snippets with no DOCTYPE or anything extra.
-
-Everything generally chains, i.e. returns self, so that you can add more tags on one line.
+The actual HTML output is similar. No whitespace is added to the document, it is all on one line unless the content contains newlines. You may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is HTML5: the document is standards-compliant with a lot less cruft.
 
 ## Templating
 
@@ -83,11 +88,11 @@ Use template variables to build a document once and only update the dynamic part
 
 ## Nesting
 
-⚠️ A tag is automatically closed when you add content to it, or prior to another tag.
+In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close. This module does not use closing tags for any elements where those are optional or forbidden.
 
-In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close.
+A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element. Use `(None)` to close an empty element if any subsequent content is not meant to go inside it, e.g. `doc.script(None, src="...")`.
 
-For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding element.
+For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
 
 ```python
 with doc.ul:  # Nest using with
@@ -96,8 +101,6 @@ with doc.ul:  # Nest using with
     doc.li("No need for brackets or closing tags")
     doc.ul(E.li("Easy").li("Peasy"))  # Nest using (...)
 ```
-
-Where unintentional nesting of a following element needs to be prevented, use `(None)` as content that causes the offending element to be kept empty.
 
 ## Escaping
 
