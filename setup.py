@@ -5,7 +5,7 @@ setup(
     author="Sanic Community",
     author_email="tronic@noreply.users.github.com",
     description="Pythonic HTML generation/templating (no template files)",
-    long_description=open("README.md").read(),
+    long_description=open("README.md", encoding="UTF-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/sanic-org/html5tagger",
     packages=find_packages(),
