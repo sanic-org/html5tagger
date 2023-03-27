@@ -2,7 +2,7 @@ from .builder import Builder
 from .util import HTML
 
 
-def Document(*title, _urls=None, _viewport=None, **html_attrs) -> Builder:
+def Document(*title, _urls=None, _viewport=False, **html_attrs) -> Builder:
     """Construct a new document with a DOCTYPE and minimal structure.
 
     The html tag is added if any attributes are provided for it.
@@ -21,7 +21,7 @@ def Document(*title, _urls=None, _viewport=None, **html_attrs) -> Builder:
     if title:
         doc.meta(charset="utf-8")  # Always a good idea
         doc.title(*title)
-    if _viewport is not None:
+    if _viewport:
         if _viewport is True:
             _viewport = "width=device-width,initial-scale=1"
         doc.meta(name="viewport", content=_viewport)
