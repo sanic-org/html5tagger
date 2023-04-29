@@ -1,3 +1,6 @@
+from __future__ import annotations
+from typing import Any, Dict, List, Union
+
 from .html5 import omit_endtag
 from .util import mangle, escape, escape_special, esc_script, esc_style, attributes
 
@@ -11,19 +14,19 @@ class Builder:
     E.g. Document("page title", lang="en").div(id="main")("Hello World!")
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str):
         self.name = name
         self._clear()
 
     def _clear(self):
-        self._pieces = []  # Document content
-        self._templates = {}  # Template builders
+        self._pieces: List[Union[str, Builder]] = []  # Document content
+        self._templates: Dict[str, Builder] = {}  # Template builders
         self._endtag = ""
-        self._stack = []
+        self._stack: List[str] = []
 
     @property
     def _allpieces(self):
-        retval = []
+        retval: List[Union[str, Builder]] = []
         retval.extend(self._pieces)
         retval.append(self._endtag)
         retval.extend(self._stack[::-1])
@@ -61,7 +64,7 @@ class Builder:
     def __iter__(self):
         return str(self).__iter__()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str):
         """Names that don't begin with underscore are HTML tag names or template blocks."""
         if name[0] == "_":
             return object.__getattribute__(self, name)
@@ -88,7 +91,7 @@ class Builder:
             self._endtag = f"</{tagname}>"
         return self
 
-    def __setattr__(self, name, value):
+    def __setattr__(self, name: str, value: Any):
         if not name[0].isupper():
             return object.__setattr__(self, name, value)
         # Set the value of a Template placeholder
@@ -96,7 +99,7 @@ class Builder:
         template._clear()
         template(value)
 
-    def __call__(self, *_inner_content, **_attrs):
+    def __call__(self, *_inner_content: Any, **_attrs: Any):
         """Add attributes and content to the current tag, or append to the document."""
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):
@@ -115,7 +118,7 @@ class Builder:
             self._endtag_close()
         return self
 
-    def _(self, *_content):
+    def _(self, *_content: Any):
         """Append new content without closing the current tag."""
         for c in _content:
             if c is None:
@@ -130,16 +133,14 @@ class Builder:
                     self._pieces += c._pieces
             # Other type of data, convert to HTML str
             else:
-                self._pieces.append(str(
-                    c.__html__() if hasattr(c, "__html__") else escape(c)
-                ))
+                self._pieces.append(str(c.__html__() if hasattr(c, "__html__") else escape(c)))
         return self
 
     def _optimize(self):
         """Join adjacent text fragments."""
         print("optimize")
-        newfrags = []
-        strfrags = []
+        newfrags: List[Union[str, Builder]] = []
+        strfrags: List[str] = []
         for frag in self._pieces:
             if isinstance(frag, str) or frag.name not in self._templates:
                 print("str", frag)
@@ -168,20 +169,20 @@ class Builder:
 
     ## HTML5 elements and comments special methods
 
-    def _comment(self, text):
+    def _comment(self, text: str):
         """Add an HTML comment."""
         text = str(text).replace("-->", "‒‒>")
         self._pieces.append(f"<!--{text}-->")
         return self
 
-    def _script(self, code: str, **attrs):
+    def _script(self, code: str, **attrs: Any):
         """Add inline JavaScript correctly escaped."""
         self._endtag_close()
         code = escape_special(esc_script, code)
         self._pieces.append(f"<script{attributes(attrs)}>{code}</script>")
         return self
 
-    def _style(self, code: str, **attrs):
+    def _style(self, code: str, **attrs: Any):
         """Add inline CSS correctly escaped."""
         self._endtag_close()
         code = escape_special(esc_style, code)

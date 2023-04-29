@@ -1,8 +1,9 @@
+from typing import Any, List, Optional
 from .builder import Builder
 from .util import HTML
 
 
-def Document(*title, _urls=None, _viewport=False, **html_attrs) -> Builder:
+def Document(*title: str, _urls: Optional[List[str]] = None, _viewport: Union[bool, str] = False, **html_attrs: Any) -> Builder:
     """Construct a new document with a DOCTYPE and minimal structure.
 
     The html tag is added if any attributes are provided for it.
@@ -38,6 +39,7 @@ def Document(*title, _urls=None, _viewport=False, **html_attrs) -> Builder:
         else:
             raise ValueError("Unknown extension in " + fn)
     return doc
+
 
 # Arguments for link elements by filename/extension
 linkarg = {
