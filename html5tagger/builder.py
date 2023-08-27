@@ -1,6 +1,12 @@
-from .html5 import omit_endtag
-from .util import mangle, escape, escape_special, esc_script, esc_style, attributes
+import re
 
+from .html5 import omit_endtag
+from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
+
+
+CSS_SELECTOR = re.compile(
+    r'(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)=["\']?(?P<value>[\w\s/]+)["\']?\])'
+)
 
 class Builder:
     """Builder generates a document with .elemname(attr1="value", ...) syntax.
@@ -114,6 +120,23 @@ class Builder:
             self._(*_inner_content)
             self._endtag_close()
         return self
+    
+    def __getitem__(self, item):
+        """Add attributes to the current tag."""
+        assert isinstance(item, str), "Attribute names must be strings in CSS selector syntax."
+
+        classes = []
+        kwargs = {}
+        for match in CSS_SELECTOR.finditer(item):
+            if match["id"]:
+                kwargs["id_"] = match["id"]
+            elif match["class"]:
+                classes.append(match["class"])
+            elif match["attribute"]:
+                kwargs[match["attribute"]] = match["value"]
+        if classes:
+            kwargs["class_"] = " ".join(classes)
+        return self(**kwargs)
 
     def _(self, *_content):
         """Append new content without closing the current tag."""
