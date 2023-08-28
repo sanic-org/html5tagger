@@ -6,12 +6,6 @@ from typing import List, cast
 from .builder import Builder
 from .html5 import omit_endtag
 
-try:
-    from rich import print
-except ImportError:
-    pass
-
-
 DEFAULT = object()
 # fmt: off
 BASIC_INLINE = {"a", "abbr", "area", "b", "bdi", "bdo", "br", "button", "cite",
@@ -388,8 +382,9 @@ class NodeCreator:
 
 
 class HTMLSyntaxTree:
-    def __init__(self, root: HTMLNode) -> None:
+    def __init__(self, root: HTMLNode, builder: Builder) -> None:
         self._root = root
+        self._builder = builder
 
     def __iter__(self):
         return iter(self._root)
@@ -398,7 +393,9 @@ class HTMLSyntaxTree:
     def root(self) -> HTMLNode:
         return self._root
 
-    def to_html(self, indent: str = "    ") -> str:
+    def to_html(self, pretty: bool = False, indent: str = "    ") -> str:
+        if not pretty:
+            return str(self._builder)
         return self._to_html(self.root, indent)
 
     def _to_html(self, node: HTMLNode, indent: str, level: int = 0) -> str:
@@ -424,4 +421,4 @@ class HTMLSyntaxTree:
     @classmethod
     def create(cls, builder: Builder) -> HTMLSyntaxTree:
         root = NodeCreator().create(builder)
-        return cls(root)
+        return cls(root, builder)
