@@ -29,6 +29,19 @@ FLOW_CONTENT = (BASIC_INLINE | MEDIA_ELEMENTS | FORM_ELEMENTS |
                  "pre", "progress", "section", "table", "template", "time",
                  "ul"})
 ROOT_CONTENT = {"html", "body"}
+TEXT_ALLOWED_ELEMENTS = {"a", "abbr", "address", "article", "aside", "b",
+                         "bdi", "bdo", "blockquote", "button", "caption",
+                         "cite", "code", "data", "datalist", "dd", "del",
+                         "details", "dfn", "div", "dl", "dt", "em", "fieldset",
+                         "figcaption", "figure", "footer", "form", "h1", "h2",
+                         "h3", "h4", "h5", "h6", "header", "hgroup", "i",
+                         "ins", "kbd", "label", "legend", "li", "main", "mark",
+                         "menu", "meter", "nav", "noscript", "ol", "option",
+                         "output", "p", "pre", "progress", "q", "rb", "rp",
+                         "rt", "rtc", "ruby", "s", "samp", "section", "select",
+                         "small", "span", "strong", "sub", "summary", "sup",
+                         "table", "tbody", "td", "textarea", "tfoot", "th",
+                         "thead", "time", "tr", "u", "ul", "var"}
 ALLOWED_CONTENT_MODEL = {
     # Transparent items specifically are not included
     #     - a
@@ -154,6 +167,7 @@ class HTMLNode:
     ROOT_KEY = "__root__"
     DOCTYPE_KEY = "__doctype__"
     COMMENT_KEY = "__comment__"
+    TEXT_KEY = "__text__"
     DOCTYPE = "<!DOCTYPE html>"
 
     __slots__ = (
@@ -176,7 +190,7 @@ class HTMLNode:
         self._closed = False
 
     def __repr__(self) -> str:
-        display = f"{self._name!r}, {self._attributes!r}, {self._content!r}"
+        display = f"{self._name!r}, {self._attributes!r}"
         return f"HTMLNode({display})"
 
     def __str__(self) -> str:
@@ -241,7 +255,7 @@ class HTMLNode:
 
     @property
     def is_allowed_text_content(self) -> bool:
-        return True
+        return self._name in TEXT_ALLOWED_ELEMENTS
 
     def close(self) -> None:
         for child in (child for child in self._children if not child._closed):
@@ -308,7 +322,7 @@ class NodeCreator:
             elif tag_name == HTMLNode.COMMENT_KEY:
                 self._handle_comment(piece[4:-3], stack)
                 continue
-            elif tag_name == "text":
+            elif tag_name == HTMLNode.TEXT_KEY:
                 self._handle_text(piece, stack)
                 continue
 
@@ -373,7 +387,7 @@ class NodeCreator:
 
         matches = list(PARSE_TAG_PATTERN.finditer(tag))
         if not matches:
-            return "text", False, {}
+            return HTMLNode.TEXT_KEY, False, {}
 
         is_end_tag, tagname = matches[0].groups()[:2]
         attrs = {m.group(3): m.group(4) for m in matches[1:]}
