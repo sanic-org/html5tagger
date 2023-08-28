@@ -7,7 +7,6 @@ from .builder import Builder
 from .html5 import omit_endtag
 
 DEFAULT = object()
-# fmt: off
 BASIC_INLINE = {"a", "abbr", "area", "b", "bdi", "bdo", "br", "button", "cite",
                 "code", "data", "datalist", "del", "dfn", "em", "i", "input",
                 "ins", "kbd", "label", "map", "mark", "meter", "noscript",
@@ -57,7 +56,7 @@ ALLOWED_CONTENT_MODEL = {
     # Also specifically left out are special elements
     #     - template
     "abbr": PHRASING_CONTENT,
-    "address": (FLOW_CONTENT - HEADING_CONTENT - SECTIONING_CONTENT - {"address", "header", "footer"}),  # noqa: E501
+    "address": (FLOW_CONTENT - HEADING_CONTENT - SECTIONING_CONTENT - {"address", "header", "footer"}),
     "area": None,
     "article": FLOW_CONTENT,
     "aside": FLOW_CONTENT,
@@ -83,7 +82,7 @@ ALLOWED_CONTENT_MODEL = {
     "dialog": FLOW_CONTENT,
     "div": FLOW_CONTENT | SCRIPT_SUPPORTING_ELEMENTS | {"dt", "dd"},
     "dl": {"dt", "dd", "div"} | SCRIPT_SUPPORTING_ELEMENTS,
-    "dt": (FLOW_CONTENT - {"header", "footer"} - SECTIONING_CONTENT - HEADING_CONTENT),  # noqa: E501
+    "dt": (FLOW_CONTENT - {"header", "footer"} - SECTIONING_CONTENT - HEADING_CONTENT),
     "em": PHRASING_CONTENT,
     "embed": None,
     "fieldset": {"legend"} | FLOW_CONTENT,
@@ -141,12 +140,12 @@ ALLOWED_CONTENT_MODEL = {
     "sub": PHRASING_CONTENT,
     "summary": PHRASING_CONTENT | HEADING_CONTENT,
     "sup": PHRASING_CONTENT,
-    "table": {"tbody", "thead", "tfoot", "tr", "caption", "colgroup"} | SCRIPT_SUPPORTING_ELEMENTS,  # noqa: E501
+    "table": {"tbody", "thead", "tfoot", "tr", "caption", "colgroup"} | SCRIPT_SUPPORTING_ELEMENTS,
     "tbody": {"tr"},
     "td": FLOW_CONTENT,
     "textarea": None,
     "tfoot": {"tr"},
-    "th": FLOW_CONTENT - {"header", "footer"} - SECTIONING_CONTENT - HEADING_CONTENT,  # noqa: E501
+    "th": FLOW_CONTENT - {"header", "footer"} - SECTIONING_CONTENT - HEADING_CONTENT,
     "thead": {"tr"},
     "time": PHRASING_CONTENT,
     "title": None,
@@ -160,7 +159,6 @@ ALLOWED_CONTENT_MODEL = {
 TAG_MATCH_PATTERN = re.compile(r"<(\w+)")
 ATTRIBUTE_MATCH_PATTERN = re.compile(r'(\w+)=("[^"]*"|\w+)')
 PARSE_TAG_PATTERN = re.compile(r"<(/?)(\w+)|([\w-]+)=('[^']*'|\"[^\"]*\"|\w+)")
-# fmt: on
 
 
 class HTMLNode:
