@@ -405,22 +405,51 @@ class HTMLSyntaxTree:
     def root(self) -> HTMLNode:
         return self._root
 
-    def to_html(self, pretty: bool = False, indent: str = "    ") -> str:
+    def to_html(
+        self,
+        pretty: bool = False,
+        indent: str = "    ",
+        single_line_max_length: int = 60,
+    ) -> str:
         if not pretty:
             return str(self._builder)
-        return self._to_html(self.root, indent)
+        return self._to_html(self.root, indent, single_line_max_length)
 
-    def _to_html(self, node: HTMLNode, indent: str, level: int = 0) -> str:
+    def _to_html(
+        self,
+        node: HTMLNode,
+        indent: str,
+        single_line_max_length: int,
+        level: int = 0
+    ) -> str:
         output = ""
-        output += indent * level + node.opening_tag + "\n"
+        new_line = "\n"
+        opening_prefix = indent * level
+        closing_prefix = opening_prefix
+        content_prefix = indent * (level + 1)
+        line_length = len(node.opening_tag) + len(node.content) + len(node.closing_tag) + len(opening_prefix)
+        single_line = False
+        if (
+            not node.children
+            and single_line_max_length
+            and line_length < single_line_max_length
+        ):
+            new_line = ""
+            content_prefix = ""
+            closing_prefix = ""
+            single_line = True
+        output += opening_prefix + node.opening_tag + new_line
         if node.content:
-            output += indent * (level + 1) + node.content + "\n"
+            output += content_prefix + node.content + new_line
+        ending = "\n" if node.closing_tag or single_line else ""
         for child in node.children:
             increment = 0 if isinstance(node, (RootNode,)) else 1
-            output += self._to_html(child, indent, level + increment)
+            output += self._to_html(
+                child, indent, single_line_max_length, level + increment
+            )
         if node.closing_tag:
-            output += indent * level + node.closing_tag + "\n"
-        return output
+            output += closing_prefix + node.closing_tag
+        return output + ending
 
     def display_tree(self, indent: str = "    "):
         self._display_node(self.root, indent)
