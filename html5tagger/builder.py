@@ -1,5 +1,5 @@
 from .html5 import omit_endtag
-from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
+from .util import mangle, escape, escape_special, esc_script, esc_style, attributes
 
 
 class Builder:
