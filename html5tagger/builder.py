@@ -1,5 +1,6 @@
 from .html5 import omit_endtag
 from .util import mangle, escape, escape_special, esc_script, esc_style, attributes
+from hashlib import md5
 
 
 class Builder:
@@ -20,6 +21,7 @@ class Builder:
         self._templates = {}  # Template builders
         self._endtag = ""
         self._stack = []
+        self._class_names = set()
 
     @property
     def _allpieces(self):
@@ -180,6 +182,14 @@ class Builder:
         code = escape_special(esc_script, code)
         self._pieces.append(f"<script{attributes(attrs)}>{code}</script>")
         return self
+
+    def _class(self, style_lambda):
+        style_hash = md5(style_lambda("").encode("utf-8")).hexdigest()
+        class_name = f"cls-{style_hash}"
+        if class_name not in self.style_class_names:
+            self._class_names.add(class_name)
+            self._style(style_lambda(class_name))
+        return class_name
 
     def _style(self, code: str, **attrs):
         """Add inline CSS correctly escaped."""
