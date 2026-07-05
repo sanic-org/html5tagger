@@ -83,18 +83,44 @@ The actual HTML output is similar. No whitespace is added to the document, it is
 
 ## Templating
 
-Use `Template` objects to build a document once and only fill in the dynamic parts at render time for faster performance. Uppercase names inside a builder become named slots. Wrap a builder with `Template` (or use the `@` operator) to create an immutable, callable template. Calling the template with keyword arguments renders the slots and returns the HTML string.
+A document builder can be turned into a template by `Template(doc)` or `doc @ Template`. Templates prebuild all static content where capitalized Tags can be filled in at runtime. This provides about 4x speedup, and allows building a complex page out of clean components.
+
+Let an example illustrate. We reuse `Title` tag for page title and heading which will show the same text each. We nest `Items` for list items that we produce iterating over a product list. A tag goes inside the preceding open element, and the default content can be given in parenthesis directly after that tag (empty by default).
 
 ```python
-from html5tagger import E, Template
+from html5tagger import Document, E, Template
 
-Item = E.li.Name("unknown") @ Template
+# Define the reusable templates once
+Page = Document(E.Title).h1.Title.ul.Items @ Template
+Item = Template(E.li.span(class_="name").Name._(": ").span(class_="price").Price("N/A"))
 
-str(Item(Name="Apple"))   # <li>Apple
-str(Item())               # <li>unknown
+# Super fast rendering just fills in the dynamic data
+def render(products: list) -> str:
+    return Page(
+        Title="Product List",
+        Items=[Item(**product) for product in products],
+    )
+
+html = render([
+    {"Name": "Apple", "Price": "$1.20"},
+    {"Name": "Banana"},
+])
 ```
 
-Template slot values are escaped by default. Pass an `HTML` object or any object with an `__html__` method to include preformatted HTML.
+A doc Builder can be finalized into a template by `Template(...)` or `... @ Template`, whichever is syntactically preferred. The produced object is immutable and may be *called* to render the template with given values for the tags.
+
+Template values use the same rules as `doc(...)`. If parenthesis are added directly after the template tag, this becomes the default value for the template. The above example produces:
+
+```html
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Product List</title>
+<h1>Product List</h1>
+<ul>
+  <li><span class=name>Apple</span>: <span class=price>$1.20</span>
+  <li><span class=name>Banana</span>: <span class=price>N/A</span>
+</ul>
+```
 
 ## Nesting
 

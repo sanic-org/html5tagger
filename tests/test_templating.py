@@ -48,6 +48,22 @@ def test_template_default_value():
     assert str(item(Name="Apple")) == "<li>Apple"
 
 
+def test_template_slot_call_replaces_default():
+    item = Template(E.li.Name("first").Name("second"))
+    assert str(item()) == "<li>secondsecond"
+
+
+def test_template_slot_default_stays_in_place_when_called_after_access():
+    item = Template(E.li.span.Name("NONAME").span.Price)
+    assert str(item(Price="$1.20")) == "<li><span>NONAME</span><span>$1.20</span>"
+    assert str(item(Name="Banana", Price="$0.80")) == "<li><span>Banana</span><span>$0.80</span>"
+
+
+def test_template_slot_followed_by_append_goes_after_parent_tag():
+    item = Template(E.li.span.Name._("X"))
+    assert str(item(Name="A")) == "<li><span>A</span>X"
+
+
 def test_template_escapes_values():
     item = Template(E.li.Name(""))
     assert str(item(Name="<script>")) == "<li>&lt;script>"
@@ -85,6 +101,19 @@ def test_template_with_e_nesting():
 def test_template_multiple_references_use_same_value():
     item = Template(E.li.Name("").span.Name(""))
     assert str(item(Name="X")) == "<li>X<span>X</span>"
+
+
+def test_template_slot_renders_list_of_values():
+    page = Template(Document("X").ul.Items)
+    html = str(page(Items=[E.li("A"), E.li("B")]))
+    assert html == '<!DOCTYPE html><meta charset="utf-8"><title>X</title><ul><li>A<li>B</ul>'
+
+
+def test_template_slot_renders_generator_of_values():
+    page = Template(Document("X").ul.Items)
+    items = (E.li(name) for name in ("A", "B"))
+    html = str(page(Items=items))
+    assert html == '<!DOCTYPE html><meta charset="utf-8"><title>X</title><ul><li>A<li>B</ul>'
 
 
 def test_template_reuse_in_loop():

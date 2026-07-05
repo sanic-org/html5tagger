@@ -27,6 +27,7 @@ class Builder:
         self._templates = {}  # Template builders
         self._endtag = ""
         self._stack = []
+        self._pending_slot = None
 
     @property
     def _allpieces(self):
@@ -86,10 +87,12 @@ class Builder:
             builder = self._templates.get(name)
             if not builder:
                 builder = self._templates[name] = Builder(name=name)
+            self._pending_slot = builder
             self._pieces.append(builder)
             self._endtag_close()
             return self
         # Otherwise it is a tag
+        self._pending_slot = None
         tagname = mangle(name)
         self._endtag_close()
         self._pieces.append(f"<{tagname}>")
@@ -99,11 +102,26 @@ class Builder:
 
     def __call__(self, *_inner_content, **_attrs):
         """Add attributes and content to the current tag, or append to the document."""
+        # Immediate call after a template placeholder access sets default value.
+        if self._pending_slot is not None:
+            assert not _attrs, "Cannot add attributes to a template placeholder"
+            slot = self._pending_slot
+            self._pending_slot = None
+            slot._clear()
+            slot._(*_inner_content)
+            return self
+
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):
             assert not _attrs, "Cannot add attributes to a template placeholder"
-            self._pieces[-1](*_inner_content)
+            # Calling an uppercase placeholder sets/replaces its default value.
+            # Use ._(...) after the placeholder for content that should come after it.
+            slot = self._pieces[-1]
+            slot._clear()
+            slot._(*_inner_content)
             return self
+
+        self._pending_slot = None
         # Add attributes and content to the current tag
         if _attrs:
             tag = self._pieces[-1]
@@ -118,6 +136,7 @@ class Builder:
 
     def _(self, *_content):
         """Append new content without closing the current tag."""
+        self._pending_slot = None
         for c in _content:
             if c is None:
                 continue

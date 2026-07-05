@@ -85,6 +85,10 @@ class Template:
             return ""
         if hasattr(value, "__html__"):
             return str(value.__html__())
+        if isinstance(value, (str, bytes, bytearray)):
+            return str(escape(value))
+        if hasattr(value, "__iter__"):
+            return "".join(Template._render_value(v) for v in value)
         return str(escape(value))
 
     def __repr__(self):
