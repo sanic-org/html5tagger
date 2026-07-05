@@ -2,43 +2,110 @@
 
 import pytest
 
-from html5tagger import Document, E
+from html5tagger import HTML, Document, E, Template
+
+## Placeholder creation
 
 
-def test_template_placeholder():
-    doc = Document(E.TitleText_)
-    doc.h1.TitleText_("Hello")
-    assert "<title>Hello</title>" in str(doc)
-    assert "<h1>Hello</h1>" in str(doc)
+def test_template_insert_placeholder():
+    doc = Document(E.TitleText)
+    doc.h1.TitleText
+    item = doc @ Template
+    assert str(item(TitleText="Hello")) == '<!DOCTYPE html><meta charset="utf-8"><title>Hello</title><h1>Hello</h1>'
 
 
-def test_template_fetch_and_update():
-    doc = Document(E.TitleText_)
-    doc.h1.TitleText_("Hello")
-    title = doc.TitleText
-    title("World")
-    assert "<title>HelloWorld</title>" in str(doc)
-    assert "<h1>HelloWorld</h1>" in str(doc)
+def test_template_closes_open_tag():
+    """doc.span.Tag.br == <span>Tag</span><br>"""
+    doc = Document()
+    doc.span.Tag.br
+    item = doc @ Template
+    assert str(item(Tag="content")) == "<!DOCTYPE html><span>content</span><br>"
 
 
-def test_template_not_found_raises():
-    doc = Document("Demo")
-    with pytest.raises(AttributeError):
-        _ = doc.MissingTemplate
+def test_template_creates_on_access():
+    """Accessing an unknown uppercase name creates and inserts the placeholder."""
+    doc = Document()
+    doc.Missing
+    assert "Missing" in doc._templates
 
 
-def test_clear_template():
-    doc = Document("Demo")
-    assert doc.Head_ is doc
-    doc.Head = None
-    assert doc.Head is not None
+## Stateless Template callable
 
 
-def test_template_reuse_in_doc():
-    doc = Document("Demo")
-    assert doc.Head_ is doc
-    head = doc.Head
-    doc._(head)
-    assert "<title>Demo</title>" in str(doc)
-    # Adding the same template builder back appends it directly.
-    assert doc._pieces[-1] is head
+def test_template_constructor():
+    item = Template(E.li.Name(""))
+    assert str(item(Name="Apple")) == "<li>Apple"
+
+
+def test_template_matmul_operator():
+    item = E.li.Name("") @ Template
+    assert str(item(Name="Apple")) == "<li>Apple"
+
+
+def test_template_default_value():
+    item = Template(E.li.Name("unknown"))
+    assert str(item()) == "<li>unknown"
+    assert str(item(Name="Apple")) == "<li>Apple"
+
+
+def test_template_escapes_values():
+    item = Template(E.li.Name(""))
+    assert str(item(Name="<script>")) == "<li>&lt;script>"
+
+
+def test_template_accepts_html_literal():
+    item = Template(E.li.Name(""))
+    assert str(item(Name=HTML("<b>bold</b>"))) == "<li><b>bold</b>"
+
+
+def test_template_multiple_slots():
+    item = Template(E.li.Name("").span.Price(""))
+    assert str(item(Name="Apple", Price="1.99")) == "<li>Apple<span>1.99</span>"
+
+
+def test_template_with_e_nesting():
+    """Template slots can be placed with nested E(...) builders."""
+    item = Template(
+        E.div(class_="card")(
+            E.h3(class_="title")(E.Name),
+            E.p(class_="desc")(E.Desc),
+            E.div(class_="meta")(
+                E.span(class_="price")(E.Price),
+                E.span(class_="stock")(E.Stock),
+            ),
+        )
+    )
+    html = str(item(Name="X", Desc="Y", Price="Z", Stock="ok"))
+    assert (
+        html
+        == "<div class=card><h3 class=title>X</h3><p class=desc>Y<div class=meta><span class=price>Z</span><span class=stock>ok</span></div></div>"
+    )
+
+
+def test_template_multiple_references_use_same_value():
+    item = Template(E.li.Name("").span.Name(""))
+    assert str(item(Name="X")) == "<li>X<span>X</span>"
+
+
+def test_template_reuse_in_loop():
+    item = Template(E.li.Name(""))
+    doc = Document("List")
+    doc.ul
+    for name in ("A", "B", "C"):
+        doc._(item(Name=name))
+    html = str(doc)
+    assert "<li>A<li>B<li>C" in html
+
+
+def test_template_does_not_mutate_builder():
+    tpl = E.li.Name("default")
+    item = Template(tpl)
+    _ = item(Name="Apple")
+    _ = item(Name="Banana")
+    # The original builder is untouched.
+    assert str(tpl) == "<li>default"
+
+
+def test_template_only_accepts_builder():
+    with pytest.raises(TypeError):
+        Template("not a builder")

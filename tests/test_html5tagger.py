@@ -161,23 +161,6 @@ def test_makebuilder_call():
     assert str(snippet2) == "<div>World</div>"
 
 
-def test_optimize(capsys):
-    doc = Document("Demo")
-    doc._("before")
-    assert doc.Head_ is doc
-    doc._("after")
-    doc._optimize()
-    captured = capsys.readouterr()
-    assert "optimize" in captured.out
-    assert "str before" in captured.out
-    assert "str after" in captured.out
-
-    # Optimize with a template as the first fragment covers the empty-strfrags branch.
-    doc2 = Builder("Optimize Test")
-    assert doc2.Head_ is doc2
-    doc2._optimize()
-
-
 def test_attribute_skipping():
     snippet = E.input(type="text", disabled=False, hidden=None, checked=True)
     assert str(snippet) == "<input type=text checked>"

@@ -1,5 +1,12 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .html5 import omit_endtag
 from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
+
+if TYPE_CHECKING:
+    from .template import Template
 
 
 class Builder:
@@ -58,25 +65,30 @@ class Builder:
     def __iter__(self):
         return str(self).__iter__()
 
+    def __matmul__(self, other: type[Template]) -> Template:
+        """Support ``builder @ Template`` to create a Template."""
+        # Avoid a circular import at module load time.
+        from .template import Template
+
+        if other is Template:
+            return Template(self)
+        return NotImplemented
+
     def __getattr__(self, name):
         """Names that don't begin with underscore are HTML tag names or template blocks."""
         if name[0] == "_":
             return object.__getattribute__(self, name)
-        # If name is uppercase, it is a Template placeholder
+        # If name is uppercase, it is a Template placeholder.
+        # Uppercase names always insert the placeholder.
+        # If a tag is currently open, the placeholder becomes its content and
+        # the tag is closed (e.g. ``doc.span.Tag.br`` == ``<span>Tag</span><br>``).
         if name[0].isupper():
-            add_to_doc = name.endswith("_")
-            if add_to_doc:
-                name = name[:-1]
             builder = self._templates.get(name)
             if not builder:
-                if not add_to_doc:
-                    raise AttributeError(f"Template {name} not found. Use doc.{name}_ to add it to the document.")
                 builder = self._templates[name] = Builder(name=name)
-            if add_to_doc:
-                self._pieces.append(builder)
-                return self
-            else:
-                return builder
+            self._pieces.append(builder)
+            self._endtag_close()
+            return self
         # Otherwise it is a tag
         tagname = mangle(name)
         self._endtag_close()
@@ -84,14 +96,6 @@ class Builder:
         if tagname not in omit_endtag:
             self._endtag = f"</{tagname}>"
         return self
-
-    def __setattr__(self, name, value):
-        if not name[0].isupper():
-            return object.__setattr__(self, name, value)
-        # Set the value of a Template placeholder
-        template = self._templates[name]
-        template._clear()
-        template(value)
 
     def __call__(self, *_inner_content, **_attrs):
         """Add attributes and content to the current tag, or append to the document."""
@@ -129,25 +133,6 @@ class Builder:
             else:
                 self._pieces.append(str(c.__html__() if hasattr(c, "__html__") else escape(c)))
         return self
-
-    def _optimize(self):
-        """Join adjacent text fragments."""
-        print("optimize")
-        newfrags = []
-        strfrags = []
-        for frag in self._pieces:
-            if isinstance(frag, str) or frag.name not in self._templates:
-                print("str", frag)
-                strfrags.append(str(frag))
-            else:
-                if strfrags:
-                    print(strfrags)
-                    newfrags.append("".join(strfrags))
-                    strfrags = []
-                newfrags.append(frag)
-        if strfrags:
-            newfrags.append("".join(strfrags))
-        self._pieces = newfrags
 
     ## With statement support for nested elements
 
