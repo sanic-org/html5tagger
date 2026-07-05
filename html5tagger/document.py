@@ -12,7 +12,7 @@ def Document(*title, _urls=None, _viewport=False, **html_attrs) -> Builder:
     Document() produces only a DOCTYPE declaration.
 
     Stylesheets, scripts and favicon passed in _urls will be linked in.
-    
+
     Meta viewport may be added to disable device scaling (True) or using a
     custom string value for any other setting."""
     doc = Builder("Document Builder")(HTML("<!DOCTYPE html>"))
@@ -39,13 +39,14 @@ def Document(*title, _urls=None, _viewport=False, **html_attrs) -> Builder:
             raise ValueError("Unknown extension in " + fn)
     return doc
 
+
 # Arguments for link elements by filename/extension
 linkarg = {
-    "manifest.json": dict(rel="manifest"),
-    "css": dict(rel="stylesheet"),
-    "png": dict(rel="icon", type="image/png"),
-    "svg": dict(rel="icon", type="image/svg+xml"),
-    "ico": dict(rel="icon", type="image/x-icon"),
-    "webp": dict(rel="icon", type="image/webp"),
-    "avif": dict(rel="icon", type="image/avif"),
+    "manifest.json": {"rel": "manifest"},
+    "css": {"rel": "stylesheet"},
+    "png": {"rel": "icon", "type": "image/png"},
+    "svg": {"rel": "icon", "type": "image/svg+xml"},
+    "ico": {"rel": "icon", "type": "image/x-icon"},
+    "webp": {"rel": "icon", "type": "image/webp"},
+    "avif": {"rel": "icon", "type": "image/avif"},
 }

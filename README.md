@@ -167,3 +167,23 @@ In 2023 support for templating was added, allowing documents to be preformatted 
 Additionally, `_script` and `_style` special methods were added in 2023. These may eventually replace also the non-underscored automatic versions but for now a separate method was easier to implement.
 
 Pull requests are still welcome.
+
+## Development
+
+This project uses [uv](https://docs.astral.sh/uv/) for dependency management,
+[nox](https://nox.thea.codes/) for task automation, [ruff](https://docs.astral.sh/ruff/)
+for linting and formatting, and [ty](https://docs.astral.sh/ty/) for type checking.
+
+Set up the environment and run the full test suite:
+
+```sh
+uv sync
+uv run nox
+```
+
+Run only linting or tests:
+
+```sh
+uv run nox -s lint
+uv run nox -s test
+```
