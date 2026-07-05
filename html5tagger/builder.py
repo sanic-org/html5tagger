@@ -169,16 +169,20 @@ class Builder:
         self._pieces.append(f"<!--{text}-->")
         return self
 
-    def _script(self, code: str, **attrs):
+    def script(self, code: str | None = None, **attrs):
         """Add inline JavaScript correctly escaped."""
         self._endtag_close()
-        code = escape_special(esc_script, code)
+        code = escape_special(esc_script, code) if code else ""
         self._pieces.append(f"<script{attributes(attrs)}>{code}</script>")
         return self
 
-    def _style(self, code: str, **attrs):
+    def style(self, code: str | None = None, **attrs):
         """Add inline CSS correctly escaped."""
         self._endtag_close()
-        code = escape_special(esc_style, code)
+        code = escape_special(esc_style, code) if code else ""
         self._pieces.append(f"<style{attributes(attrs)}>{code}</style>")
         return self
+
+    # compat: until version 1.3.0 underscores had to be used
+    _style = style
+    _script = script
