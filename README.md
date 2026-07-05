@@ -55,7 +55,7 @@ with doc.table(id="data"):
             doc.td(row * col)
 
 # Add inline scripts or styles with special escaping
-doc._script("console.log('</script> escaping is weird')")
+doc.script("console.log('</script> escaping is weird')")
 ```
 
 You can `str(doc)` to get the HTML code, and using `doc` directly usually has the desired effect as well (e.g. giving HTML responses). Jupyter Notebooks render it as HTML. For debugging, use `repr(doc)`:
@@ -83,9 +83,9 @@ The actual HTML output is similar. No whitespace is added to the document, it is
 
 ## Templating
 
-A document builder can be turned into a template by `Template(doc)` or `doc @ Template`. Templates prebuild all static content where capitalized Tags can be filled in at runtime. This provides about 4x speedup, and allows building a complex page out of clean components.
+A document builder can be turned into a template by `Template(doc)` or `doc @ Template`. Templates prebuild all static content as long strings, leaving only capitalized placeholders to be filled in at render time. This provides about 4x speedup and allows building a complex page out of clean components.
 
-Let an example illustrate. We reuse `Title` tag for page title and heading which will show the same text each. We nest `Items` for list items that we produce iterating over a product list. A tag goes inside the preceding open element, and the default content can be given in parenthesis directly after that tag (empty by default).
+The example below defines a page with `Title` reused for both the `<title>` and `<h1>`, and an `Items` list populated from a product list. Parentheses directly after a placeholder set its default value (empty by default).
 
 ```python
 from html5tagger import Document, E, Template
@@ -107,10 +107,6 @@ html = render([
 ])
 ```
 
-A doc Builder can be finalized into a template by `Template(...)` or `... @ Template`, whichever is syntactically preferred. The produced object is immutable and may be *called* to render the template with given values for the tags.
-
-Template values use the same rules as `doc(...)`. If parenthesis are added directly after the template tag, this becomes the default value for the template. The above example produces:
-
 ```html
 <!DOCTYPE html>
 <meta charset="utf-8">
@@ -122,11 +118,13 @@ Template values use the same rules as `doc(...)`. If parenthesis are added direc
 </ul>
 ```
 
+A builder can be finalized into a template by `Template(...)` or `... @ Template`, whichever is syntactically preferred. The resulting `Template` object is immutable and is called with keyword arguments to render the placeholders. Template values follow the same escaping rules as `doc(...)`, and a list of builders or strings is expanded in place.
+
 ## Nesting
 
 In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close. This module does not use closing tags for any elements where those are optional or forbidden.
 
-A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element. Use `(None)` to close an empty element if any subsequent content is not meant to go inside it, e.g. `doc.script(None, src="...")`.
+A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element. Use `(None)` to close an empty element if any subsequent content is not meant to go inside it, e.g. `doc.script(src="...")` for an external script.
 
 For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
 
@@ -196,6 +194,10 @@ In the above benchmark html5tagger created the entire document from scratch, one
 There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable.
 
 Template support allows documents to be preformatted for all their static parts (as long strings), with only named slots filled in at render time.
+
+The `_script` and `_style` special methods added in 2023 have been replaced by the `script` and `style` methods.
+
+The template support introduced in version 1.3.0 (2023) has been abandoned in favor of a new implementation based on the explicit `Template` class, released in 2026. The two approaches are not compatible: the old format did not use `Template` at all and behaved very differently, even though both used capitalized placeholder names.
 
 Pull requests are still welcome.
 
