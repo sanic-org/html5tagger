@@ -149,7 +149,7 @@ def coverage(session):
         "-s",
         "lint",
         "cov-clean",
-        "test-3.14",
+        f"test-{TOOLS_PYTHON}",
         "cov-combine",
         external=True,
         success_codes=[0, 1],
