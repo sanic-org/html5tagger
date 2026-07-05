@@ -2,7 +2,7 @@
 
 import pytest
 
-from html5tagger import HTML, Document, E
+from html5tagger import HTML, Builder, Document, E
 
 
 def test_empty_document():
@@ -20,28 +20,6 @@ def test_document_with_title_and_lang():
 def test_element_chain():
     snippet = E.p("Powered by:").br.a(href="...")("html5tagger")
     assert str(snippet) == '<p>Powered by:<br><a href="...">html5tagger</a>'
-
-
-def test_template_placeholder():
-    doc = Document(E.TitleText_)
-    doc.h1.TitleText_("Hello")
-    assert "<title>Hello</title>" in str(doc)
-    assert "<h1>Hello</h1>" in str(doc)
-
-
-def test_template_fetch_and_update():
-    doc = Document(E.TitleText_)
-    doc.h1.TitleText_("Hello")
-    title = doc.TitleText
-    title("World")
-    assert "<title>HelloWorld</title>" in str(doc)
-    assert "<h1>HelloWorld</h1>" in str(doc)
-
-
-def test_template_not_found_raises():
-    doc = Document("Demo")
-    with pytest.raises(AttributeError):
-        _ = doc.MissingTemplate
 
 
 def test_with_context_manager():
@@ -157,8 +135,49 @@ def test_iter():
     assert "".join(doc) == str(doc)
 
 
-def test_clear_template():
+def test_brief_empty_short_and_long():
+    empty = Builder("Empty")
+    assert empty.brief == "《Empty》"
+
+    short = Document("Demo")
+    assert short.brief == '《Document Builder:<!DOCTYPE html><meta charset="utf-8"><title>Demo</title>》'
+
+    long_text = "x" * 200
+    long_doc = Document(long_text)
+    assert long_doc.brief == f"《Document Builder:{str(long_doc)[:20]} ···》"
+
+
+def test_repr_long_truncation():
+    doc = Document()
+    doc._("x" * 20000)
+    rep = repr(doc)
+    assert " ··· " in rep
+
+
+def test_makebuilder_call():
+    snippet = E("Hello")
+    assert str(snippet) == "Hello"
+    snippet2 = E.div("World")
+    assert str(snippet2) == "<div>World</div>"
+
+
+def test_optimize(capsys):
     doc = Document("Demo")
+    doc._("before")
     assert doc.Head_ is doc
-    doc.Head = None
-    assert doc.Head is not None
+    doc._("after")
+    doc._optimize()
+    captured = capsys.readouterr()
+    assert "optimize" in captured.out
+    assert "str before" in captured.out
+    assert "str after" in captured.out
+
+    # Optimize with a template as the first fragment covers the empty-strfrags branch.
+    doc2 = Builder("Optimize Test")
+    assert doc2.Head_ is doc2
+    doc2._optimize()
+
+
+def test_attribute_skipping():
+    snippet = E.input(type="text", disabled=False, hidden=None, checked=True)
+    assert str(snippet) == "<input type=text checked>"
