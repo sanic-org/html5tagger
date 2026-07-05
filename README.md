@@ -138,13 +138,13 @@ with doc.ul:  # Nest using with
     doc.ul(E.li("Easy").li("Peasy"))  # Nest using (...)
 ```
 
-## Escaping
+## Escaping and special methods
 
-All content and attributes are automatically escaped. For instance, we can put the entire document into an iframe's srcdoc attribute where only the minimal but necessary escaping is applied. Use custom methods `_script`, `_style` and `_comment` for corresponding inline formats, to follow their custom escaping rules.
+All content and attributes are automatically escaped with rules depending on context where it appears. For instance, we can put the entire document into an iframe's srcdoc attribute where only the minimal but necessary escaping is applied. Methods `script`, `style` and `_comment` follow their custom escaping rules. Note that parenthesis must be added after these with optional attributes and str content: the element will immediately close without needing explicit `None` content for an empty element.
 
 ```python
 doc = Document("Escaping & Context")
-doc._style('h1::after {content: "</Style>"}').h1("<Escape>")
+doc.style('h1::after {content: "</Style>"}').h1("<Escape>")
 doc._comment("All-->OK")
 doc.iframe(srcdoc=Document().p("&amp; is used for &"))
 ```
@@ -191,14 +191,11 @@ Jinja2 renders similar document from memory template within about 10 µs but it 
 
 In the above benchmark html5tagger created the entire document from scratch, one element and attribute at a time. Unless you are creating very large documents dynamically, this should be quite fast enough.
 
-
 ## Further development
 
 There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable.
 
 Template support allows documents to be preformatted for all their static parts (as long strings), with only named slots filled in at render time.
-
-Additionally, `_script` and `_style` special methods were added in 2023. These may eventually replace also the non-underscored automatic versions but for now a separate method was easier to implement.
 
 Pull requests are still welcome.
 

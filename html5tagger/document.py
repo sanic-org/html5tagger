@@ -32,9 +32,9 @@ def Document(*title, _urls=None, _viewport=False, **html_attrs) -> Builder:
         if args:
             doc.link(href=url, **args)
         elif url.endswith(".js"):
-            doc.script(None, src=url, defer=True)
+            doc.script(src=url, defer=True)
         elif url.endswith(".mjs"):
-            doc.script(None, src=url, type="module")
+            doc.script(src=url, type="module")
         else:
             raise ValueError("Unknown extension in " + fn)
     return doc

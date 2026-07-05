@@ -59,13 +59,13 @@ def test_html_literal_not_escaped():
 
 def test_script_escaping():
     doc = Document()
-    doc._script("console.log('</script>')")
+    doc.script("console.log('</script>')")
     assert "<script>console.log('<\\/script>')</script>" in str(doc)
 
 
 def test_style_escaping():
     doc = Document()
-    doc._style('h1::after {content: "</Style>"}')
+    doc.style('h1::after {content: "</Style>"}')
     assert '<style>h1::after {content: "<\\/Style>"}</style>' in str(doc)
 
 
