@@ -1,5 +1,6 @@
 import re
 
+
 class HTML(str):
     """A HTML string that will not be escaped."""
 
@@ -12,12 +13,14 @@ class HTML(str):
 def escape(text):
     return HTML(str(text).replace("&", "&amp;").replace("<", "&lt;"))
 
+
 # Inline styles and scripts only escape the specific end tag
 esc_style = re.compile("</(style>)", re.IGNORECASE)
 esc_script = re.compile("</(script>)", re.IGNORECASE)
 
-def escape_special(tag: re, text):
-    return HTML(tag.sub(r'<\\/\1', text))
+
+def escape_special(tag: re.Pattern[str], text):
+    return HTML(tag.sub(r"<\\/\1", text))
 
 
 def attributes(attrs):
