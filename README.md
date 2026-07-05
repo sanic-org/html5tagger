@@ -83,7 +83,7 @@ The actual HTML output is similar. No whitespace is added to the document, it is
 
 ## Templating
 
-A document builder can be turned into a template by `Template(doc)` or `doc @ Template`. Templates prebuild all static content as long strings, leaving only capitalized placeholders to be filled in at render time. This provides about 4x speedup and allows building a complex page out of clean components.
+A document builder can be turned into a template by `Template(doc)` or `doc @ Template`. Templates prebuild all static content as long strings, leaving only capitalized placeholders to be filled in at render time. This provides extremely fast rendering and allows building a complex page out of clean components.
 
 The example below defines a page with `Title` reused for both the `<title>` and `<h1>`, and an `Items` list populated from a product list. Parentheses directly after a placeholder set its default value (empty by default).
 
@@ -124,7 +124,7 @@ A builder can be finalized into a template by `Template(...)` or `... @ Template
 
 In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close. This module does not use closing tags for any elements where those are optional or forbidden.
 
-A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element. Use `(None)` to close an empty element if any subsequent content is not meant to go inside it, e.g. `doc.script(src="...")` for an external script.
+A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element, so we can do `doc.div(class="foo")("inside")` where the content still goes inside the div. `None` may be passed for content to close without content, e.g. `doc.div(None)("after")` produces `<div></div>after`.
 
 For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
 
@@ -191,13 +191,9 @@ In the above benchmark html5tagger created the entire document from scratch, one
 
 ## Further development
 
-There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable.
+There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable with only small incremental changes like the `script` and `style` special methods being added.
 
-Template support allows documents to be preformatted for all their static parts (as long strings), with only named slots filled in at render time.
-
-The `_script` and `_style` special methods added in 2023 have been replaced by the `script` and `style` methods.
-
-The template support introduced in version 1.3.0 (2023) has been abandoned in favor of a new implementation based on the explicit `Template` class, released in 2026. The two approaches are not compatible: the old format did not use `Template` at all and behaved very differently, even though both used capitalized placeholder names.
+The only major new development was the prebuilt template support. The draft implementation introduced in version 1.3.0 (2023) has been abandoned in 2.0 (2026) in favor of current implementation's clearer semantics, higher performance and flexibility to handle nested components with changing contents.
 
 Pull requests are still welcome.
 
