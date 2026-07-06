@@ -17,8 +17,8 @@ from html5tagger import Document, E, Template
 
 # Pre-construct reusable templates once, in the style of the README example.
 # A realistic product card with several nested elements and attributes.
-Item = (
-    E.article(class_="product-card")(
+Item = Template(
+    E.article(class_="product-card", data_sku=E.SKU)(
         E.div(class_="product-image")(
             E.span(class_="placeholder")(E.Initial),
         ),
@@ -32,12 +32,11 @@ Item = (
             E.a(class_="product-detail", href="/product/view")("Details"),
         ),
     )
-    @ Template
 )
 
 # A realistic page shell: header, navigation, sidebar, main content, footer.
 # Only the Items slot is dynamic; everything else is prebuilt static HTML.
-Page = (
+Page = Template(
     Document(
         "Shop",
         lang="en",
@@ -77,7 +76,6 @@ Page = (
             E.p("© 2026 Shop. All rights reserved."),
         ),
     )
-    @ Template
 )
 
 
@@ -90,6 +88,7 @@ def make_products(count: int = 100) -> list[dict[str, str]]:
             "Desc": f"This is a longer description for product number {i}.",
             "Price": f"${i + 1}.99",
             "Stock": "in stock" if i % 3 else "out of stock",
+            "SKU": f"SKU-{i}",
         }
         for i in range(count)
     ]
@@ -125,7 +124,7 @@ def render_from_scratch(products: list[dict[str, str]]) -> str:
             doc.h1("Products")
             doc.div(class_="product-grid")
             for p in products:
-                item = E.article(class_="product-card")
+                item = E.article(class_="product-card", data_sku=p["SKU"])
                 with item:
                     with item.div(class_="product-image"):
                         item.span(class_="placeholder")(p["Initial"])
