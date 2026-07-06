@@ -158,6 +158,18 @@ E.div["#widget.foo.bar[data-role=widget]"]("Content")
 
 Multiple selectors may be combined in one string and the `[]` operator may be chained.
 
+To append classes after the tag has been created, use the `classes` keyword argument in the call operator. It accepts a whitespace-separated string or a list of class names and appends them to any class attribute already set:
+
+```python
+E.div["#main"]("Hello", classes="foo bar")
+E.div[".a"]("Hello", classes=["b", "c"])
+```
+
+```html
+<div id=main class="foo bar">Hello</div>
+<div class="a b c">Hello</div>
+```
+
 ## Preformatted HTML
 
 All content is automatically escaped, unless it provides an `__html__` method that returns a string in HTML format. Similarly, the builder objects of this module expose `__html__` and `_repr_html_` accessors that allow them to be rendered as HTML in Jupyter Notebooks and various other systems that follow this convention.
