@@ -181,3 +181,53 @@ def test_optimize(capsys):
 def test_attribute_skipping():
     snippet = E.input(type="text", disabled=False, hidden=None, checked=True)
     assert str(snippet) == "<input type=text checked>"
+
+
+def test_css_selector_id():
+    snippet = E.div["#main"]("Hello")
+    assert str(snippet) == "<div id=main>Hello</div>"
+
+
+def test_css_selector_class():
+    snippet = E.div[".container"]("Hello")
+    assert str(snippet) == "<div class=container>Hello</div>"
+
+
+def test_css_selector_multiple_classes():
+    snippet = E.div[".foo.bar.baz"]("Hello")
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_css_selector_attribute():
+    snippet = E.a["[href=/path]"]("Link")
+    assert str(snippet) == '<a href="/path">Link</a>'
+
+
+def test_css_selector_quoted_attribute():
+    snippet = E.div['[data-value="foo bar"]']("Hello")
+    assert str(snippet) == '<div data-value="foo bar">Hello</div>'
+
+
+def test_css_selector_boolean_attribute():
+    snippet = E.input["[disabled]"]()
+    assert str(snippet) == "<input disabled>"
+
+
+def test_css_selector_combined():
+    snippet = E.div["#main.container[data-role=widget]"]("Hello")
+    assert str(snippet) == "<div id=main data-role=widget class=container>Hello</div>"
+
+
+def test_css_selector_chained():
+    snippet = E.div["#main"][".container"]("Hello")
+    assert str(snippet) == "<div id=main class=container>Hello</div>"
+
+
+def test_css_selector_hyphenated_value():
+    snippet = E.div["[data-value=foo-bar]"]("Hello")
+    assert str(snippet) == '<div data-value="foo-bar">Hello</div>'
+
+
+def test_css_selector_invalid_type_raises():
+    with pytest.raises(AssertionError):
+        E.div[123]

@@ -138,6 +138,26 @@ E.input(type="checkbox", id="somebox", checked=True).label(for_="somebox", aria_
 <input type=checkbox id=somebox checked><label for=somebox aria-role=img>🥳</label>
 ```
 
+## CSS selector style attributes
+
+As an alternative to keyword arguments, attributes may be set using CSS selector syntax with the subscript (`[]`) operator. This supports `#id`, `.class` and `[attribute=value]`, including boolean attributes with `[attribute]`.
+
+```python
+E.div["#main.container"]("Hello")
+E.a["[href=/files]"]("a link")
+E.input["[disabled]"]()
+E.div["#widget.foo.bar[data-role=widget]"]("Content")
+```
+
+```html
+<div id=main class=container>Hello</div>
+<a href="/files">a link</a>
+<input disabled>
+<div id=widget data-role=widget class="foo bar">Content</div>
+```
+
+Multiple selectors may be combined in one string and the `[]` operator may be chained.
+
 ## Preformatted HTML
 
 All content is automatically escaped, unless it provides an `__html__` method that returns a string in HTML format. Similarly, the builder objects of this module expose `__html__` and `_repr_html_` accessors that allow them to be rendered as HTML in Jupyter Notebooks and various other systems that follow this convention.
