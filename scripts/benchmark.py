@@ -16,6 +16,19 @@ import timeit
 from html5tagger import Document, E, Template
 
 
+# Pre-construct reusable templates once, in the style of the README example.
+Item = E.div(class_="card")(
+    E.h3(class_="title")(E.Name),
+    E.p(class_="desc")(E.Desc),
+    E.div(class_="meta")(
+        E.span(class_="price")(E.Price),
+        E.span(class_="stock")(E.Stock),
+    ),
+) @ Template
+
+Page = Document("Shop").ul.Items @ Template
+
+
 def make_products(count: int = 100) -> list[dict[str, str]]:
     return [
         {
@@ -28,25 +41,9 @@ def make_products(count: int = 100) -> list[dict[str, str]]:
     ]
 
 
-def make_item_template() -> Template:
-    """A realistic product-card template, defined once."""
-    tpl = E.div(class_="card")
-    with tpl:
-        tpl.h3(class_="title").Name
-        tpl.p(class_="desc").Desc
-        with tpl.div(class_="meta"):
-            tpl.span(class_="price").Price
-            tpl.span(class_="stock").Stock
-    return tpl @ Template
-
-
 def render_with_template(products: list[dict[str, str]]) -> str:
-    Item = make_item_template()
-    doc = Document("Shop")
-    doc.ul
-    for p in products:
-        doc._(Item(**p))
-    return str(doc)
+    """Render using pre-built templates."""
+    return Page(Items=[Item(**p) for p in products])
 
 
 def render_from_scratch(products: list[dict[str, str]]) -> str:
