@@ -231,3 +231,45 @@ def test_css_selector_hyphenated_value():
 def test_css_selector_invalid_type_raises():
     with pytest.raises(AssertionError):
         E.div[123]
+
+
+def test_classes_str_appends():
+    snippet = E.div[".foo"]("Hello", classes="bar baz")
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_classes_list_appends():
+    snippet = E.div[".foo"]("Hello", classes=["bar", "baz"])
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_classes_appends_to_class_attr():
+    snippet = E.div(class_="foo")("Hello", classes="bar")
+    assert str(snippet) == '<div class="foo bar">Hello</div>'
+
+
+def test_classes_with_class_kwarg_uses_class_as_base():
+    snippet = E.div[".foo"]("Hello", class_="bar", classes="baz")
+    assert str(snippet) == '<div class="bar baz">Hello</div>'
+
+
+def test_classes_empty_str_no_class():
+    snippet = E.div[".foo"]("Hello", classes="")
+    assert str(snippet) == "<div class=foo>Hello</div>"
+
+
+def test_classes_empty_list_no_class():
+    snippet = E.div[".foo"]("Hello", classes=[])
+    assert str(snippet) == "<div class=foo>Hello</div>"
+
+
+def test_classes_no_existing_class():
+    snippet = E.div("Hello", classes="foo bar")
+    assert str(snippet) == '<div class="foo bar">Hello</div>'
+
+
+def test_classes_on_template_placeholder_raises():
+    doc = Document()
+    assert doc.Head_ is doc
+    with pytest.raises(AssertionError):
+        doc(classes="foo")

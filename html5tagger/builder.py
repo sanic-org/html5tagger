@@ -7,6 +7,9 @@ CSS_SELECTOR = re.compile(
     r"(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)(?:=(?P<value>[^\]]*))?\])"
 )
 
+# Matches a class attribute already set on a tag string, e.g. class=foo or class="foo bar".
+_CLASS_ATTR_RE = re.compile(r' class=(?:"([^"]*)"|\'([^\']*)\'|([^\s>]*))')
+
 
 class Builder:
     """Builder generates a document with .elemname(attr1="value", ...) syntax.
@@ -99,19 +102,34 @@ class Builder:
         template._clear()
         template(value)
 
-    def __call__(self, *_inner_content, **_attrs):
+    def __call__(self, *_inner_content, classes=None, **_attrs):
         """Add attributes and content to the current tag, or append to the document."""
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):
-            assert not _attrs, "Cannot add attributes to a template placeholder"
+            assert not _attrs and classes is None, "Cannot add attributes to a template placeholder"
             self._pieces[-1](*_inner_content)
             return self
         # Add attributes and content to the current tag
-        if _attrs:
+        if _attrs or classes is not None:
             tag = self._pieces[-1]
             assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
                 f"Can only add attrs to opening tags, got {tag!r}"
             )
+            if classes is not None:
+                extra = classes.split() if isinstance(classes, str) else list(classes)
+                base = None
+                if "class_" in _attrs:
+                    base = str(_attrs.pop("class_"))
+                match = _CLASS_ATTR_RE.search(tag)
+                if match:
+                    if base is None:
+                        base = next(g for g in match.groups() if g is not None)
+                    tag = tag[: match.start()] + tag[match.end() :]
+                if base is None:
+                    base = ""
+                combined = base.split() + extra
+                if combined:
+                    _attrs["class_"] = " ".join(combined)
             self._pieces[-1] = f"{tag[:-1]}{attributes(_attrs)}>"
         if _inner_content:
             self._(*_inner_content)
