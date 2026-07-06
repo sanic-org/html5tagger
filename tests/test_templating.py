@@ -138,3 +138,24 @@ def test_template_does_not_mutate_builder():
 def test_template_only_accepts_builder():
     with pytest.raises(TypeError):
         Template("not a builder")
+
+
+## HTML/str conversion edge cases
+
+
+def test_template_default_preserves_html_escaping():
+    """Slot defaults are pre-rendered HTML and must not be double-escaped."""
+    item = Template(E.li.Name("<b>default</b>"))
+    assert str(item()) == "<li>&lt;b>default&lt;/b>"
+
+
+def test_template_default_with_html_literal():
+    """Slot defaults containing HTML literals should render as HTML."""
+    item = Template(E.li.Name(HTML("<b>default</b>")))
+    assert str(item()) == "<li><b>default</b>"
+
+
+def test_template_default_with_builder():
+    """Slot defaults containing a Builder should render the builder's HTML."""
+    item = Template(E.li.Name(E.b("default")))
+    assert str(item()) == "<li><b>default</b>"

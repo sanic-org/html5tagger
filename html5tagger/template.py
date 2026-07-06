@@ -60,7 +60,7 @@ class Template:
                 # piece is a Builder
                 if piece.name in templates:
                     flush()
-                    default = str(piece)
+                    default = HTML(piece)
                     fragments.append(Slot(piece.name, default))
                 else:
                     # Nested, non-slot builder: render once now.
