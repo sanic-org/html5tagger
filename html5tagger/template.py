@@ -1,14 +1,15 @@
-from .util import HTML, escape
+from .util import HTML, _render_attr, escape
 
 
 class Slot:
     """A named hole inside a Template."""
 
-    __slots__ = ("name", "default")
+    __slots__ = ("name", "default", "render")
 
-    def __init__(self, name: str, default: str = ""):
+    def __init__(self, name: str, default: str = "", render=None):
         self.name = name
         self.default = default
+        self.render = render
 
     def __repr__(self):
         return f"Slot({self.name!r})"
@@ -45,6 +46,8 @@ class Template:
     @staticmethod
     def _flatten(builder, templates):
         """Convert a Builder into a flat list of strings and Slots."""
+        from .builder import AttributedTag
+
         fragments: list[str | Slot] = []
         buffer: list[str] = []
 
@@ -53,15 +56,37 @@ class Template:
                 fragments.append("".join(buffer))
                 buffer.clear()
 
+        def make_attr_render(attr: str):
+            def render(value):
+                return _render_attr(attr, value)
+
+            return render
+
         for piece in builder._allpieces:
             if isinstance(piece, str):
                 buffer.append(piece)
+            elif isinstance(piece, AttributedTag):
+                buffer.append(piece.prefix)
+                for segment in piece.segments:
+                    if isinstance(segment, str):
+                        buffer.append(segment)
+                    else:
+                        # segment is an AttributeSlot
+                        flush()
+                        fragments.append(
+                            Slot(
+                                segment.name,
+                                default=segment.default,
+                                render=make_attr_render(segment.attr),
+                            )
+                        )
+                buffer.append(">")
             else:
                 # piece is a Builder
                 if piece.name in templates:
                     flush()
                     default = HTML(piece)
-                    fragments.append(Slot(piece.name, default))
+                    fragments.append(Slot(piece.name, default, render=Template._render_value))
                 else:
                     # Nested, non-slot builder: render once now.
                     buffer.append(str(piece))
@@ -76,7 +101,7 @@ class Template:
                 parts.append(fragment)
             else:
                 value = values.get(fragment.name, fragment.default)
-                parts.append(self._render_value(value))
+                parts.append(fragment.render(value))
         return HTML("".join(parts))
 
     @staticmethod

@@ -144,6 +144,7 @@ def test_template_placeholder_rejects_attributes():
     with pytest.raises(TypeError):
         E.li.Name(class_="foo")
 
+
 ## HTML/str conversion edge cases
 
 
@@ -163,3 +164,159 @@ def test_template_default_with_builder():
     """Slot defaults containing a Builder should render the builder's HTML."""
     item = Template(E.li.Name(E.b("default")))
     assert str(item()) == "<li><b>default</b>"
+
+
+## Attribute slots
+
+
+def test_template_attribute_slot():
+    item = E.article(data_sku=E.Sku) @ Template
+    assert str(item(Sku="ABC-123")) == '<article data-sku="ABC-123"></article>'
+
+
+def test_template_attribute_slot_default():
+    item = E.article(data_sku=E.Sku("unknown")) @ Template
+    assert str(item()) == "<article data-sku=unknown></article>"
+    assert str(item(Sku="ABC")) == "<article data-sku=ABC></article>"
+
+
+def test_template_attribute_slot_escapes_value():
+    item = E.article(data_sku=E.Sku) @ Template
+    assert str(item(Sku='a"b&c')) == '<article data-sku="a&quot;b&amp;c"></article>'
+
+
+def test_template_attribute_slot_default_is_escaped():
+    item = E.article(data_sku=E.Sku("<b>")) @ Template
+    assert str(item()) == '<article data-sku="&lt;b>"></article>'
+
+
+def test_template_attribute_slot_multiple():
+    item = E.a(href=E.Href, title=E.Title) @ Template
+    assert str(item(Href="/x", Title="X")) == '<a href="/x" title=X></a>'
+
+
+def test_template_attribute_slot_mixed_with_static():
+    item = E.input(type="text", value=E.Value, class_="foo") @ Template
+    assert str(item(Value="bar")) == "<input type=text value=bar class=foo>"
+
+
+def test_template_attribute_slot_in_document():
+    page = Document("Shop").div(class_="product", data_id=E.Id) @ Template
+    assert (
+        str(page(Id="42"))
+        == '<!DOCTYPE html><meta charset="utf-8"><title>Shop</title><div class=product data-id=42></div>'
+    )
+
+
+def test_attribute_slot_renders_default_without_template():
+    """A Builder with a Slot attribute renders its default when not templated."""
+    item = E.article(data_sku=E.Sku("UNKNOWN"))
+    assert str(item) == "<article data-sku=UNKNOWN></article>"
+
+
+def test_template_attribute_slot_boolean_true():
+    item = E.input(disabled=E.Disabled) @ Template
+    assert str(item(Disabled=True)) == "<input disabled>"
+
+
+def test_template_attribute_slot_boolean_false():
+    item = E.input(disabled=E.Disabled) @ Template
+    assert str(item(Disabled=False)) == "<input>"
+
+
+def test_template_attribute_slot_none_omits():
+    item = E.input(disabled=E.Disabled) @ Template
+    assert str(item(Disabled=None)) == "<input>"
+
+
+def test_template_attribute_slot_true_among_static():
+    item = E.input(type="text", disabled=E.Disabled, class_="foo") @ Template
+    assert str(item(Disabled=True)) == "<input type=text disabled class=foo>"
+    assert str(item(Disabled=False)) == "<input type=text class=foo>"
+
+
+def test_template_attribute_slot_default_true():
+    item = E.input(disabled=E.Disabled(True)) @ Template
+    assert str(item()) == "<input disabled>"
+    assert str(item(Disabled=False)) == "<input>"
+
+
+def test_template_attribute_slot_default_false():
+    item = E.input(disabled=E.Disabled(False)) @ Template
+    assert str(item()) == "<input>"
+    assert str(item(Disabled=True)) == "<input disabled>"
+
+
+## Attribute slot default/render value matrix
+
+
+def _attr_slot_matrix():
+    """Return expected outputs for each (default_factory, render_value) pair."""
+    # default_factories: how the attribute slot default is declared
+    # render_values: what is passed when rendering the template
+    defaults = {
+        "E.Tag": lambda: E.Tag,
+        "E.Tag(None)": lambda: E.Tag(None),
+        "E.Tag(False)": lambda: E.Tag(False),
+        "E.Tag(True)": lambda: E.Tag(True),
+        'E.Tag("")': lambda: E.Tag(""),
+    }
+    render_values = {
+        "missing": (False, None),
+        "None": (True, None),
+        "False": (True, False),
+        "True": (True, True),
+        '""': (True, ""),
+    }
+    expected = {
+        ("E.Tag", "missing"): "<div></div>",
+        ("E.Tag", "None"): "<div></div>",
+        ("E.Tag", "False"): "<div></div>",
+        ("E.Tag", "True"): "<div data-id></div>",
+        ("E.Tag", '""'): '<div data-id=""></div>',
+        ("E.Tag(None)", "missing"): "<div></div>",
+        ("E.Tag(None)", "None"): "<div></div>",
+        ("E.Tag(None)", "False"): "<div></div>",
+        ("E.Tag(None)", "True"): "<div data-id></div>",
+        ("E.Tag(None)", '""'): '<div data-id=""></div>',
+        ("E.Tag(False)", "missing"): "<div></div>",
+        ("E.Tag(False)", "None"): "<div></div>",
+        ("E.Tag(False)", "False"): "<div></div>",
+        ("E.Tag(False)", "True"): "<div data-id></div>",
+        ("E.Tag(False)", '""'): '<div data-id=""></div>',
+        ("E.Tag(True)", "missing"): "<div data-id></div>",
+        ("E.Tag(True)", "None"): "<div></div>",
+        ("E.Tag(True)", "False"): "<div></div>",
+        ("E.Tag(True)", "True"): "<div data-id></div>",
+        ("E.Tag(True)", '""'): '<div data-id=""></div>',
+        ('E.Tag("")', "missing"): '<div data-id=""></div>',
+        ('E.Tag("")', "None"): "<div></div>",
+        ('E.Tag("")', "False"): "<div></div>",
+        ('E.Tag("")', "True"): "<div data-id></div>",
+        ('E.Tag("")', '""'): '<div data-id=""></div>',
+    }
+    return defaults, render_values, expected
+
+
+def test_template_attribute_slot_matrix():
+    defaults, render_values, expected = _attr_slot_matrix()
+    for default_name, factory in defaults.items():
+        for value_name, (provide, value) in render_values.items():
+            slot = factory()
+            item = E.div(data_id=slot) @ Template
+            kwargs = {"Tag": value} if provide else {}
+            result = str(item(**kwargs))
+            assert result == expected[(default_name, value_name)], (
+                f"default={default_name!r}, value={value_name!r}: "
+                f"got {result!r}, expected {expected[(default_name, value_name)]!r}"
+            )
+
+
+def test_template_content_slot_none_not_rendered_as_text():
+    """A None/False default in a content slot must render as empty, not 'None'."""
+    item = E.div(E.Name(None)) @ Template
+    assert str(item()) == "<div></div>"
+    item = E.div(E.Name(False)) @ Template
+    assert str(item()) == "<div></div>"
+    item = E.div(E.Name(True)) @ Template
+    assert str(item()) == "<div>True</div>"

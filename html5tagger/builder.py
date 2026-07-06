@@ -3,10 +3,43 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .html5 import omit_endtag
-from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
+from .util import (
+    _OMIT,
+    AttributeSlot,
+    attributes,
+    esc_script,
+    esc_style,
+    escape,
+    escape_special,
+    mangle,
+    render_attributes,
+)
 
 if TYPE_CHECKING:
     from .template import Template
+
+
+class AttributedTag:
+    """An opening tag whose attributes may contain dynamic slots."""
+
+    __slots__ = ("prefix", "segments")
+
+    def __init__(self, prefix: str, segments: list[str | AttributeSlot]):
+        self.prefix = prefix
+        self.segments = segments
+
+    def __str__(self):
+        return f"{self.prefix}{''.join(str(s) for s in self.segments)}>"
+
+    @property
+    def brief(self):
+        """A shorter output for the repr() of the document."""
+        value = str(self)
+        if len(value) > 100:
+            value = f":{value[:20]} ···"
+        elif value:
+            value = f":{value}"
+        return value
 
 
 class Builder:
@@ -28,6 +61,22 @@ class Builder:
         self._endtag = ""
         self._stack = []
         self._pending_slot = None
+
+    def _set_default(self, *_content):
+        """Set a placeholder's default value.
+
+        ``None``/``False``/no argument produces a sentinel that omits the
+        attribute when used as an attribute slot, while keeping content slots
+        empty. ``True`` is preserved so attribute slots can render a short
+        attribute. Everything else is escaped as usual.
+        """
+        self._clear()
+        if not _content or _content[0] is None or _content[0] is False:
+            self._pieces.append(_OMIT)
+        elif len(_content) == 1 and isinstance(_content[0], bool):
+            self._pieces.append(_content[0])
+        elif _content:
+            self._(*_content)
 
     @property
     def _allpieces(self):
@@ -53,7 +102,16 @@ class Builder:
         return f"《{self.name}{value}》"
 
     def __repr__(self):
-        ret = "".join([frag.brief if isinstance(frag, Builder) else frag for frag in self._allpieces])
+        def fmt(frag):
+            if isinstance(frag, Builder):
+                return frag.brief
+            if isinstance(frag, AttributedTag):
+                return frag.brief
+            if frag is _OMIT:
+                return ""
+            return frag
+
+        ret = "".join(fmt(frag) for frag in self._allpieces)
         if len(ret) > 10000:
             ret = f"{ret[:1000]} ··· {ret[-1000:]}"
         return f"《{self.name}》\n{ret}" if len(ret) > 100 else self.brief
@@ -108,8 +166,7 @@ class Builder:
                 raise TypeError("Cannot add attributes to a template placeholder")
             slot = self._pending_slot
             self._pending_slot = None
-            slot._clear()
-            slot._(*_inner_content)
+            slot._set_default(*_inner_content)
             return self
 
         # Template placeholder just added
@@ -119,8 +176,7 @@ class Builder:
             # Calling an uppercase placeholder sets/replaces its default value.
             # Use ._(...) after the placeholder for content that should come after it.
             slot = self._pieces[-1]
-            slot._clear()
-            slot._(*_inner_content)
+            slot._set_default(*_inner_content)
             return self
 
         self._pending_slot = None
@@ -130,7 +186,11 @@ class Builder:
             assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
                 f"Can only add attrs to opening tags, got {tag!r}"
             )
-            self._pieces[-1] = f"{tag[:-1]}{attributes(_attrs)}>"
+            attr_result = attributes(_attrs)
+            if isinstance(attr_result, str):
+                self._pieces[-1] = f"{tag[:-1]}{attr_result}>"
+            else:
+                self._pieces[-1] = AttributedTag(tag[:-1], attr_result)
         if _inner_content:
             self._(*_inner_content)
             self._endtag_close()
@@ -179,14 +239,14 @@ class Builder:
         """Add inline JavaScript correctly escaped."""
         self._endtag_close()
         code = escape_special(esc_script, code) if code else ""
-        self._pieces.append(f"<script{attributes(attrs)}>{code}</script>")
+        self._pieces.append(f"<script{render_attributes(attributes(attrs))}>{code}</script>")
         return self
 
     def style(self, code: str | None = None, **attrs):
         """Add inline CSS correctly escaped."""
         self._endtag_close()
         code = escape_special(esc_style, code) if code else ""
-        self._pieces.append(f"<style{attributes(attrs)}>{code}</style>")
+        self._pieces.append(f"<style{render_attributes(attributes(attrs))}>{code}</style>")
         return self
 
     # compat: until version 1.3.0 underscores had to be used

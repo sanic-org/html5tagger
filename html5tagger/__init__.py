@@ -1,4 +1,4 @@
-"""Generate HTML5 documents directly from Python code."""
+"""Generate HTML5 documents directly in Python."""
 
 from importlib.metadata import version
 
