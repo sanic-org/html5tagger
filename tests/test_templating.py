@@ -140,6 +140,10 @@ def test_template_only_accepts_builder():
         Template("not a builder")
 
 
+def test_template_placeholder_rejects_attributes():
+    with pytest.raises(TypeError):
+        E.li.Name(class_="foo")
+
 ## HTML/str conversion edge cases
 
 

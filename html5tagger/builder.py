@@ -104,7 +104,8 @@ class Builder:
         """Add attributes and content to the current tag, or append to the document."""
         # Immediate call after a template placeholder access sets default value.
         if self._pending_slot is not None:
-            assert not _attrs, "Cannot add attributes to a template placeholder"
+            if _attrs:
+                raise TypeError("Cannot add attributes to a template placeholder")
             slot = self._pending_slot
             self._pending_slot = None
             slot._clear()
@@ -113,7 +114,8 @@ class Builder:
 
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):
-            assert not _attrs, "Cannot add attributes to a template placeholder"
+            if _attrs:
+                raise TypeError("Cannot add attributes to a template placeholder")
             # Calling an uppercase placeholder sets/replaces its default value.
             # Use ._(...) after the placeholder for content that should come after it.
             slot = self._pieces[-1]
