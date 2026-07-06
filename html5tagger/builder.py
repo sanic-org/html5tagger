@@ -3,10 +3,10 @@ import re
 from .html5 import omit_endtag
 from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
 
-
 CSS_SELECTOR = re.compile(
-    r'(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)=["\']?(?P<value>[\w\s/]+)["\']?\])'
+    r"(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)(?:=(?P<value>[^\]]*))?\])"
 )
+
 
 class Builder:
     """Builder generates a document with .elemname(attr1="value", ...) syntax.
@@ -51,10 +51,7 @@ class Builder:
         return f"《{self.name}{value}》"
 
     def __repr__(self):
-        ret = "".join([
-            frag.brief if isinstance(frag, Builder) else frag
-            for frag in self._allpieces
-        ])
+        ret = "".join([frag.brief if isinstance(frag, Builder) else frag for frag in self._allpieces])
         if len(ret) > 10000:
             ret = f"{ret[:1000]} ··· {ret[-1000:]}"
         return f"《{self.name}》\n{ret}" if len(ret) > 100 else self.brief
@@ -112,17 +109,21 @@ class Builder:
         # Add attributes and content to the current tag
         if _attrs:
             tag = self._pieces[-1]
-            assert (
-                tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</")
-            ), f"Can only add attrs to opening tags, got {tag!r}"
+            assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
+                f"Can only add attrs to opening tags, got {tag!r}"
+            )
             self._pieces[-1] = f"{tag[:-1]}{attributes(_attrs)}>"
         if _inner_content:
             self._(*_inner_content)
             self._endtag_close()
         return self
-    
+
     def __getitem__(self, item):
-        """Add attributes to the current tag."""
+        """Add attributes to the current tag using CSS selector syntax.
+
+        Supports #id, .class and [attribute=value] (or [attribute] for boolean
+        attributes). Multiple selectors may be combined in a single string.
+        """
         assert isinstance(item, str), "Attribute names must be strings in CSS selector syntax."
 
         classes = []
@@ -133,7 +134,12 @@ class Builder:
             elif match["class"]:
                 classes.append(match["class"])
             elif match["attribute"]:
-                kwargs[match["attribute"]] = match["value"]
+                value = match["value"]
+                if value is None:
+                    kwargs[match["attribute"]] = True
+                else:
+                    value = value.strip("\"'")
+                    kwargs[match["attribute"]] = value
         if classes:
             kwargs["class_"] = " ".join(classes)
         return self(**kwargs)
@@ -153,9 +159,7 @@ class Builder:
                     self._pieces += c._pieces
             # Other type of data, convert to HTML str
             else:
-                self._pieces.append(str(
-                    c.__html__() if hasattr(c, "__html__") else escape(c)
-                ))
+                self._pieces.append(str(c.__html__() if hasattr(c, "__html__") else escape(c)))
         return self
 
     def _optimize(self):
@@ -197,16 +201,20 @@ class Builder:
         self._pieces.append(f"<!--{text}-->")
         return self
 
-    def _script(self, code: str, **attrs):
+    def script(self, code: str | None = None, **attrs):
         """Add inline JavaScript correctly escaped."""
         self._endtag_close()
-        code = escape_special(esc_script, code)
+        code = escape_special(esc_script, code) if code else ""
         self._pieces.append(f"<script{attributes(attrs)}>{code}</script>")
         return self
 
-    def _style(self, code: str, **attrs):
+    def style(self, code: str | None = None, **attrs):
         """Add inline CSS correctly escaped."""
         self._endtag_close()
-        code = escape_special(esc_style, code)
+        code = escape_special(esc_style, code) if code else ""
         self._pieces.append(f"<style{attributes(attrs)}>{code}</style>")
         return self
+
+    # compat: until version 1.3.0 underscores had to be used
+    _style = style
+    _script = script
