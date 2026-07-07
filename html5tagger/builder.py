@@ -31,11 +31,7 @@ class Builder:
 
     @property
     def _allpieces(self):
-        retval = []
-        retval.extend(self._pieces)
-        retval.append(self._endtag)
-        retval.extend(self._stack[::-1])
-        return tuple(retval)
+        return *self._pieces, self._endtag, *self._stack[::-1]
 
     def _endtag_close(self):
         if self._endtag:
