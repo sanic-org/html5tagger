@@ -214,13 +214,16 @@ def test_css_selector_boolean_attribute():
 
 
 def test_css_selector_combined():
-    snippet = E.div["#main.container[data-role=widget]"]("Hello")
-    assert str(snippet) == "<div id=main class=container data-role=widget>Hello</div>"
+    snippet = E.div["#main.container[data-role=widget]"]("Hello", classes="extra", foo=True)
+    assert str(snippet) == '<div id=main class="container extra" data-role=widget foo>Hello</div>'
+
+    snippet = E.div(classes="extra", foo=True)["#main.container[data-role=widget]"]("Hello")
+    assert str(snippet) == '<div foo id=main class="extra container" data-role=widget>Hello</div>'
 
 
 def test_css_selector_chained():
-    snippet = E.div["#main"][".container"]("Hello")
-    assert str(snippet) == "<div id=main class=container>Hello</div>"
+    snippet = E.div[".card[data=foo]"]["#main.container"]("Hello")
+    assert str(snippet) == '<div data=foo id=main class="card container">Hello</div>'
 
 
 def test_css_selector_hyphenated_value():

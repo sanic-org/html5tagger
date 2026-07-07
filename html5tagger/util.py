@@ -27,11 +27,10 @@ def escape_attr_value(value: str):
     return value if value.isalnum() else f'''"{value.replace("&", "&amp;").replace('"', "&quot;")}"'''
 
 
-def attributes(attrs, *, mangle_names=True):
+def attributes(attrs):
     ret = ""
     for k, v in attrs.items():
-        if mangle_names:
-            k = mangle(k)
+        k = mangle(k)
         if v is None or v is False:
             continue
         ret += " " + k

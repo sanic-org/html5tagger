@@ -117,7 +117,7 @@ class Builder:
                     # Combine with existing class (from earlier [] or ())
                     classes = (g if (g := m.group(1)) is not None else m.group(2)).split() + classes
                     classes = " ".join(classes)
-                    tag = tag[: m.start()] + attributes({"class": classes}) + tag[m.end() :]
+                    tag = tag[: m.start()] + f" class={escape_attr_value(classes)}" + tag[m.end() :]
                     del _attrs["classes"]
                 else:
                     # New attribute, keeping ordering of kwargs
@@ -144,18 +144,18 @@ class Builder:
 
         frags = [tag[:-1]]
         class_value_idx = None
-        for match in CSS_SELECTOR.finditer(item):
-            if match["id"]:
-                value = escape_attr_value(match["id"])
+        for m in CSS_SELECTOR.finditer(item):
+            if m["id"]:
+                value = escape_attr_value(m["id"])
                 frags.extend([" id=", value])
-            elif match["class"]:
+            elif m["class"]:
                 if class_value_idx is None:
                     class_value_idx = len(frags) + 1
-                    frags += " class=", match["class"]
+                    frags += " class=", m["class"]
                 else:
-                    frags[class_value_idx] = f"{frags[class_value_idx]} {match['class']}"
-            elif attr := match["attribute"]:
-                value = match["value"]
+                    frags[class_value_idx] = f"{frags[class_value_idx]} {m['class']}"
+            elif attr := m["attribute"]:
+                value = m["value"]
                 if value is None:
                     frags += " ", attr
                 else:
@@ -166,11 +166,9 @@ class Builder:
                     frags += " ", attr, "=", escape_attr_value(value)
         if class_value_idx is not None:
             base = None
-            match = TAG_ATTR.search(tag)
-            if match:
-                base = next(g for g in match.groups() if g is not None)
-                tag = tag[: match.start()] + tag[match.end() :]
-            if base is not None:
+            if m := TAG_ATTR.search(tag):
+                base = g if (g := m.group(1)) is not None else m.group(2)
+                frags[0] = tag[:m.start()] + tag[m.end():-1]  # Remove class attribute and >
                 frags[class_value_idx] = f"{base} {frags[class_value_idx]}"
             frags[class_value_idx] = escape_attr_value(frags[class_value_idx])
         frags.append(">")
