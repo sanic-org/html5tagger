@@ -37,7 +37,7 @@ def attributes(attrs, *, mangle_names=True):
         ret += " " + k
         if v is True:
             continue  # Short attribute
-        v = escape_attr_value(v)
+        v = escape_attr_value(f"{v}")
         ret += "=" + v
     return ret
 
