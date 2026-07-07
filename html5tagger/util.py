@@ -23,18 +23,21 @@ def escape_special(tag: re.Pattern[str], text):
     return HTML(tag.sub(r"<\\/\1", text))
 
 
-def attributes(attrs):
+def escape_attr_value(value: str):
+    return value if value.isalnum() else f'''"{value.replace("&", "&amp;").replace('"', "&quot;")}"'''
+
+
+def attributes(attrs, *, mangle_names=True):
     ret = ""
     for k, v in attrs.items():
-        k = mangle(k)
+        if mangle_names:
+            k = mangle(k)
         if v is None or v is False:
             continue
         ret += " " + k
         if v is True:
             continue  # Short attribute
-        v = str(v)
-        if not v.isalnum():
-            v = '"' + v.replace("&", "&amp;").replace('"', "&quot;") + '"'
+        v = escape_attr_value(v)
         ret += "=" + v
     return ret
 

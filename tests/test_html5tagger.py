@@ -215,7 +215,7 @@ def test_css_selector_boolean_attribute():
 
 def test_css_selector_combined():
     snippet = E.div["#main.container[data-role=widget]"]("Hello")
-    assert str(snippet) == "<div id=main data-role=widget class=container>Hello</div>"
+    assert str(snippet) == "<div id=main class=container data-role=widget>Hello</div>"
 
 
 def test_css_selector_chained():
@@ -226,6 +226,11 @@ def test_css_selector_chained():
 def test_css_selector_hyphenated_value():
     snippet = E.div["[data-value=foo-bar]"]("Hello")
     assert str(snippet) == '<div data-value="foo-bar">Hello</div>'
+
+
+def test_css_selector_underscore_attribute_not_mangled():
+    snippet = E.div["[data_test=value]"]("Hello")
+    assert str(snippet) == "<div data_test=value>Hello</div>"
 
 
 def test_css_selector_invalid_type_raises():
@@ -248,9 +253,14 @@ def test_classes_appends_to_class_attr():
     assert str(snippet) == '<div class="foo bar">Hello</div>'
 
 
-def test_classes_with_class_kwarg_uses_class_as_base():
-    snippet = E.div[".foo"]("Hello", class_="bar", classes="baz")
-    assert str(snippet) == '<div class="bar baz">Hello</div>'
+def test_classes_preserve_class_kwarg_position():
+    snippet = E.div(id_="main", class_="foo", data_role="widget")("Hello", classes="bar")
+    assert str(snippet) == '<div id=main class="foo bar" data-role=widget>Hello</div>'
+
+
+def test_classes_preserve_classes_kwarg_position():
+    snippet = E.div(id_="me", classes=["foz", "baz"], foo="bar")
+    assert str(snippet) == '<div id=me class="foz baz" foo=bar></div>'
 
 
 def test_classes_empty_str_no_class():

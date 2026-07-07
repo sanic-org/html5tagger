@@ -1,14 +1,13 @@
 import re
 
 from .html5 import omit_endtag
-from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
+from .util import attributes, esc_script, esc_style, escape, escape_attr_value, escape_special, mangle
 
 CSS_SELECTOR = re.compile(
     r"(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)(?:=(?P<value>[^\]]*))?\])"
 )
-
-# Matches a class attribute already set on a tag string, e.g. class=foo or class="foo bar".
-_CLASS_ATTR_RE = re.compile(r' class=(?:"([^"]*)"|\'([^\']*)\'|([^\s>]*))')
+TAG_ATTR = re.compile(r' class=(?:"([^"]*)"|([^\s>]*))')  # Matches class="..." or class=... in a tag
+BACKSLASH_ESC = re.compile(r"\\(.)")
 
 
 class Builder:
@@ -102,37 +101,35 @@ class Builder:
         template._clear()
         template(value)
 
-    def __call__(self, *_inner_content, classes=None, **_attrs):
+    def __call__(self, *_content, **_attrs):
         """Add attributes and content to the current tag, or append to the document."""
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):
-            assert not _attrs and classes is None, "Cannot add attributes to a template placeholder"
-            self._pieces[-1](*_inner_content)
+            assert not _attrs, "Cannot add attributes to a template placeholder"
+            self._pieces[-1](*_content)
             return self
         # Add attributes and content to the current tag
-        if _attrs or classes is not None:
+        if _attrs:
             tag = self._pieces[-1]
             assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
                 f"Can only add attrs to opening tags, got {tag!r}"
             )
-            if classes is not None:
-                extra = classes.split() if isinstance(classes, str) else list(classes)
-                base = None
-                if "class_" in _attrs:
-                    base = str(_attrs.pop("class_"))
-                match = _CLASS_ATTR_RE.search(tag)
-                if match:
-                    if base is None:
-                        base = next(g for g in match.groups() if g is not None)
-                    tag = tag[: match.start()] + tag[match.end() :]
-                if base is None:
-                    base = ""
-                combined = base.split() + extra
-                if combined:
-                    _attrs["class_"] = " ".join(combined)
+            if (classes := _attrs.get("classes")) is not None:
+                assert "class_" not in _attrs, "Cannot specify both classes= and class_="
+                classes = classes.split() if isinstance(classes, str) else list(classes)
+                if m := TAG_ATTR.search(tag):
+                    # Combine with existing class (from earlier [] or ())
+                    classes = (g if (g := m.group(1)) is not None else m.group(2)).split() + classes
+                    classes = " ".join(classes)
+                    tag = tag[: m.start()] + attributes({"class": classes}) + tag[m.end() :]
+                    del _attrs["classes"]
+                else:
+                    # New attribute, keeping ordering of kwargs
+                    _attrs["classes"] = " ".join(classes)
+                    _attrs = {"class" if k == "classes" else k: v for k, v in _attrs.items()}
             self._pieces[-1] = f"{tag[:-1]}{attributes(_attrs)}>"
-        if _inner_content:
-            self._(*_inner_content)
+        if _content:
+            self._(*_content)
             self._endtag_close()
         return self
 
@@ -142,25 +139,47 @@ class Builder:
         Supports #id, .class and [attribute=value] (or [attribute] for boolean
         attributes). Multiple selectors may be combined in a single string.
         """
-        assert isinstance(item, str), "Attribute names must be strings in CSS selector syntax."
+        assert isinstance(item, str), f"CSS selector syntax [] requires a string, got {item!r}."
 
-        classes = []
-        kwargs = {}
+        tag = self._pieces[-1]
+        assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
+            f"Can only add attrs to opening tags, got {tag!r}"
+        )
+
+        frags = [tag[:-1]]
+        class_value_idx = None
         for match in CSS_SELECTOR.finditer(item):
             if match["id"]:
-                kwargs["id_"] = match["id"]
+                value = escape_attr_value(match["id"])
+                frags.extend([" id=", value])
             elif match["class"]:
-                classes.append(match["class"])
-            elif match["attribute"]:
+                if class_value_idx is None:
+                    class_value_idx = len(frags) + 1
+                    frags += " class=", match["class"]
+                else:
+                    frags[class_value_idx] = f"{frags[class_value_idx]} {match['class']}"
+            elif attr := match["attribute"]:
                 value = match["value"]
                 if value is None:
-                    kwargs[match["attribute"]] = True
+                    frags += " ", attr
                 else:
-                    value = value.strip("\"'")
-                    kwargs[match["attribute"]] = value
-        if classes:
-            kwargs["class_"] = " ".join(classes)
-        return self(**kwargs)
+                    # Unquote and unescape CSS selector value
+                    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                        value = value[1:-1]
+                    value = BACKSLASH_ESC.sub(r"\1", value)
+                    frags += " ", attr, "=", escape_attr_value(value)
+        if class_value_idx is not None:
+            base = None
+            match = TAG_ATTR.search(tag)
+            if match:
+                base = next(g for g in match.groups() if g is not None)
+                tag = tag[: match.start()] + tag[match.end() :]
+            if base is not None:
+                frags[class_value_idx] = f"{base} {frags[class_value_idx]}"
+            frags[class_value_idx] = escape_attr_value(frags[class_value_idx])
+        frags.append(">")
+        self._pieces[-1] = "".join(frags)
+        return self
 
     def _(self, *_content):
         """Append new content without closing the current tag."""
