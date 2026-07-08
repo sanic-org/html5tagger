@@ -149,7 +149,10 @@ class Builder:
 
         frags = [tag[:-1]]
         class_value_idx = None
+        last_end = 0
         for m in CSS_SELECTOR.finditer(item):
+            assert m.start() == last_end, f"Invalid CSS selector: {item!r}"
+            last_end = m.end()
             if m["id"]:
                 value = escape_attr_value(m["id"])
                 frags.extend([" id=", value])
@@ -169,11 +172,12 @@ class Builder:
                         value = value[1:-1]
                     value = BACKSLASH_ESC.sub(r"\1", value)
                     frags += " ", attr, "=", escape_attr_value(value)
+        assert last_end == len(item), f"Invalid CSS selector: {item!r}"
         if class_value_idx is not None:
             base = None
             if m := TAG_ATTR.search(tag):
                 base = g if (g := m.group(1)) is not None else m.group(2)
-                frags[0] = tag[:m.start()] + tag[m.end():-1]  # Remove class attribute and >
+                frags[0] = tag[: m.start()] + tag[m.end() : -1]  # Remove class attribute and >
                 frags[class_value_idx] = f"{base} {frags[class_value_idx]}"
             frags[class_value_idx] = escape_attr_value(frags[class_value_idx])
         frags.append(">")
