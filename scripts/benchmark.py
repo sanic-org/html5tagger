@@ -75,11 +75,58 @@ def render_from_scratch(products: list[dict[str, str]]) -> str:
     return str(doc)
 
 
+def render_with_selectors(products: list[dict[str, str]]) -> str:
+    """Same document as render_from_scratch, using CSS selector syntax for static attributes."""
+    doc = Document(
+        "Shop",
+        lang="en",
+        _urls=("style.css", "app.js"),
+    )
+
+    with doc.header[".site-header"], doc.div[".container"]:
+        doc.a[".logo"](href="/")("Shop")
+        with doc.nav[".main-nav"]:
+            doc.a(href="/")("Home")
+            doc.a(href="/products")("Products")
+            doc.a(href="/about")("About")
+            doc.a(href="/contact")("Contact")
+
+    with doc.main[".main"], doc.div[".container"]:
+        with doc.aside[".sidebar"]:
+            doc.h2("Categories")
+            doc.ul
+            doc._(E.li("Electronics"), E.li("Clothing"), E.li("Home & Garden"))
+            doc._(E.li("Sports"), E.li("Books"))
+        with doc.section[".content"]:
+            doc.h1("Products")
+            doc.div[".product-grid"]
+            for p in products:
+                item = E.article[".product-card"](data_sku=p["SKU"])
+                with item:
+                    with item.div[".product-image"]:
+                        item.span[".placeholder"](p["Initial"])
+                    with item.div[".product-body"]:
+                        item.h3[".product-name"](p["Name"])
+                        item.p[".product-desc"](p["Desc"])
+                        with item.div[".product-meta"]:
+                            item.span[".product-price"](p["Price"])
+                            item.span[".product-stock"](p["Stock"])
+                        item.a[".product-detail"](href="/product/view")("Details")
+                doc._(item)
+
+    with doc.footer[".site-footer"], doc.div[".container"]:
+        doc.p("© 2026 Shop. All rights reserved.")
+
+    return str(doc)
+
+
 def main() -> None:
     products = make_products(100)
 
     # Warm up and verify identical output.
     html_scratch = render_from_scratch(products)
+    html_selectors = render_with_selectors(products)
+    assert html_scratch == html_selectors, "Outputs must be identical"
 
     print(f"Generated HTML length: {len(html_scratch)} bytes")
     print(f"Number of products:    {len(products)}")
@@ -87,10 +134,14 @@ def main() -> None:
 
     number = 1000
     t_scratch = timeit.timeit(lambda: render_from_scratch(products), number=number)
+    t_selectors = timeit.timeit(lambda: render_with_selectors(products), number=number)
 
     print(f"Single page render time (averaged over {number} renders):")
     print(
         f"  Build from scratch: {t_scratch * 1000 / number:8.3f} ms  ({t_scratch * 1_000_000 / number / len(products):.2f} µs/item)"
+    )
+    print(
+        f"  With CSS selectors: {t_selectors * 1000 / number:8.3f} ms  ({t_selectors * 1_000_000 / number / len(products):.2f} µs/item)"
     )
     print()
 
