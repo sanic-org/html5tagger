@@ -25,13 +25,9 @@ class Template:
     The template object never stores the values passed to it; they are used
     once during the call and then discarded.
 
-    A template can be created explicitly::
+    A template is created by wrapping a builder::
 
         Item = Template(E.li.Name(""))
-
-    or with the ``@`` operator::
-
-        Item = E.li.Name("") @ Template
     """
 
     __slots__ = ("_fragments",)

@@ -336,11 +336,6 @@ def test_builder_no_content_creates_empty():
     assert str(snippet) == ""
 
 
-def test_builder_matmul_not_implemented_for_non_template():
-    with pytest.raises(TypeError):
-        E.div @ int  # noqa: B018
-
-
 def test_builder_underscore_appends_none_is_ignored():
     doc = Document()
     doc._(None, "hello", None)

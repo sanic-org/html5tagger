@@ -10,7 +10,7 @@ from html5tagger import HTML, Document, E, Template
 def test_template_insert_placeholder():
     doc = Document(E.TitleText)
     doc.h1.TitleText
-    item = doc @ Template
+    item = Template(doc)
     assert str(item(TitleText="Hello")) == '<!DOCTYPE html><meta charset="utf-8"><title>Hello</title><h1>Hello</h1>'
 
 
@@ -18,7 +18,7 @@ def test_template_closes_open_tag():
     """doc.span.Tag.br == <span>Tag</span><br>"""
     doc = Document()
     doc.span.Tag.br
-    item = doc @ Template
+    item = Template(doc)
     assert str(item(Tag="content")) == "<!DOCTYPE html><span>content</span><br>"
 
 
@@ -34,11 +34,6 @@ def test_template_creates_on_access():
 
 def test_template_constructor():
     item = Template(E.li.Name(""))
-    assert str(item(Name="Apple")) == "<li>Apple"
-
-
-def test_template_matmul_operator():
-    item = E.li.Name("") @ Template
     assert str(item(Name="Apple")) == "<li>Apple"
 
 
@@ -170,48 +165,48 @@ def test_template_default_with_builder():
 
 
 def test_template_classes_slot_dict():
-    item = E.div(classes=E.ClassesTag) @ Template
+    item = Template(E.div(classes=E.ClassesTag))
     assert str(item(ClassesTag={"foo": True, "bar": False, "baz": True})) == '<div class="foo baz"></div>'
 
 
 def test_template_classes_slot_str():
-    item = E.div(classes=E.ClassesTag) @ Template
+    item = Template(E.div(classes=E.ClassesTag))
     assert str(item(ClassesTag="foo bar")) == '<div class="foo bar"></div>'
 
 
 def test_template_classes_slot_list():
-    item = E.div(classes=E.ClassesTag) @ Template
+    item = Template(E.div(classes=E.ClassesTag))
     assert str(item(ClassesTag=["foo", "bar"])) == '<div class="foo bar"></div>'
 
 
 def test_template_classes_slot_omits_when_missing():
-    item = E.div(classes=E.ClassesTag) @ Template
+    item = Template(E.div(classes=E.ClassesTag))
     assert str(item()) == "<div></div>"
 
 
 def test_template_classes_slot_combines_with_static_class():
-    item = E.div(class_="base", classes=E.ClassesTag) @ Template
+    item = Template(E.div(class_="base", classes=E.ClassesTag))
     assert str(item(ClassesTag="foo")) == '<div class="base foo"></div>'
 
 
 def test_template_classes_slot_combines_with_selector_class():
-    item = E.div[".base"](classes=E.ClassesTag) @ Template
+    item = Template(E.div[".base"](classes=E.ClassesTag))
     assert str(item(ClassesTag="foo")) == '<div class="base foo"></div>'
 
 
 def test_template_classes_slot_default_str():
-    item = E.div(classes=E.ClassesTag("foo bar")) @ Template
+    item = Template(E.div(classes=E.ClassesTag("foo bar")))
     assert str(item()) == '<div class="foo bar"></div>'
     assert str(item(ClassesTag="baz")) == "<div class=baz></div>"
 
 
 def test_template_classes_slot_default_omits():
-    item = E.div(classes=E.ClassesTag(None)) @ Template
+    item = Template(E.div(classes=E.ClassesTag(None)))
     assert str(item()) == "<div></div>"
 
 
 def test_template_classes_slot_with_other_attributes():
-    item = E.div(id_="x", classes=E.ClassesTag, data_role="y") @ Template
+    item = Template(E.div(id_="x", classes=E.ClassesTag, data_role="y"))
     assert str(item(ClassesTag="foo")) == "<div id=x class=foo data-role=y></div>"
 
 
@@ -222,38 +217,38 @@ def test_template_classes_slot_non_template_rendering():
 
 
 def test_template_attribute_slot():
-    item = E.article(data_sku=E.Sku) @ Template
+    item = Template(E.article(data_sku=E.Sku))
     assert str(item(Sku="ABC-123")) == '<article data-sku="ABC-123"></article>'
 
 
 def test_template_attribute_slot_default():
-    item = E.article(data_sku=E.Sku("unknown")) @ Template
+    item = Template(E.article(data_sku=E.Sku("unknown")))
     assert str(item()) == "<article data-sku=unknown></article>"
     assert str(item(Sku="ABC")) == "<article data-sku=ABC></article>"
 
 
 def test_template_attribute_slot_escapes_value():
-    item = E.article(data_sku=E.Sku) @ Template
+    item = Template(E.article(data_sku=E.Sku))
     assert str(item(Sku='a"b&c')) == '<article data-sku="a&quot;b&amp;c"></article>'
 
 
 def test_template_attribute_slot_default_is_escaped():
-    item = E.article(data_sku=E.Sku("<b>")) @ Template
+    item = Template(E.article(data_sku=E.Sku("<b>")))
     assert str(item()) == '<article data-sku="&lt;b>"></article>'
 
 
 def test_template_attribute_slot_multiple():
-    item = E.a(href=E.Href, title=E.Title) @ Template
+    item = Template(E.a(href=E.Href, title=E.Title))
     assert str(item(Href="/x", Title="X")) == '<a href="/x" title=X></a>'
 
 
 def test_template_attribute_slot_mixed_with_static():
-    item = E.input(type="text", value=E.Value, class_="foo") @ Template
+    item = Template(E.input(type="text", value=E.Value, class_="foo"))
     assert str(item(Value="bar")) == "<input type=text value=bar class=foo>"
 
 
 def test_template_attribute_slot_in_document():
-    page = Document("Shop").div(class_="product", data_id=E.Id) @ Template
+    page = Template(Document("Shop").div(class_="product", data_id=E.Id))
     assert (
         str(page(Id="42"))
         == '<!DOCTYPE html><meta charset="utf-8"><title>Shop</title><div class=product data-id=42></div>'
@@ -267,34 +262,34 @@ def test_attribute_slot_renders_default_without_template():
 
 
 def test_template_attribute_slot_boolean_true():
-    item = E.input(disabled=E.Disabled) @ Template
+    item = Template(E.input(disabled=E.Disabled))
     assert str(item(Disabled=True)) == "<input disabled>"
 
 
 def test_template_attribute_slot_boolean_false():
-    item = E.input(disabled=E.Disabled) @ Template
+    item = Template(E.input(disabled=E.Disabled))
     assert str(item(Disabled=False)) == "<input>"
 
 
 def test_template_attribute_slot_none_omits():
-    item = E.input(disabled=E.Disabled) @ Template
+    item = Template(E.input(disabled=E.Disabled))
     assert str(item(Disabled=None)) == "<input>"
 
 
 def test_template_attribute_slot_true_among_static():
-    item = E.input(type="text", disabled=E.Disabled, class_="foo") @ Template
+    item = Template(E.input(type="text", disabled=E.Disabled, class_="foo"))
     assert str(item(Disabled=True)) == "<input type=text disabled class=foo>"
     assert str(item(Disabled=False)) == "<input type=text class=foo>"
 
 
 def test_template_attribute_slot_default_true():
-    item = E.input(disabled=E.Disabled(True)) @ Template
+    item = Template(E.input(disabled=E.Disabled(True)))
     assert str(item()) == "<input disabled>"
     assert str(item(Disabled=False)) == "<input>"
 
 
 def test_template_attribute_slot_default_false():
-    item = E.input(disabled=E.Disabled(False)) @ Template
+    item = Template(E.input(disabled=E.Disabled(False)))
     assert str(item()) == "<input>"
     assert str(item(Disabled=True)) == "<input disabled>"
 
@@ -355,7 +350,7 @@ def test_template_attribute_slot_matrix():
     for default_name, factory in defaults.items():
         for value_name, (provide, value) in render_values.items():
             slot = factory()
-            item = E.div(data_id=slot) @ Template
+            item = Template(E.div(data_id=slot))
             kwargs = {"Tag": value} if provide else {}
             result = str(item(**kwargs))
             assert result == expected[(default_name, value_name)], (
@@ -366,21 +361,21 @@ def test_template_attribute_slot_matrix():
 
 def test_template_content_slot_none_not_rendered_as_text():
     """A None/False default in a content slot must render as empty, not 'None'."""
-    item = E.div(E.Name(None)) @ Template
+    item = Template(E.div(E.Name(None)))
     assert str(item()) == "<div></div>"
-    item = E.div(E.Name(False)) @ Template
+    item = Template(E.div(E.Name(False)))
     assert str(item()) == "<div></div>"
-    item = E.div(E.Name(True)) @ Template
+    item = Template(E.div(E.Name(True)))
     assert str(item()) == "<div>True</div>"
 
 
 def test_template_content_slot_none_value():
-    item = E.div(E.Name("default")) @ Template
+    item = Template(E.div(E.Name("default")))
     assert str(item(Name=None)) == "<div></div>"
 
 
 def test_template_content_slot_non_string_non_iterable_value():
-    item = E.div(E.Name("default")) @ Template
+    item = Template(E.div(E.Name("default")))
     assert str(item(Name=42)) == "<div>42</div>"
 
 

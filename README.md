@@ -28,7 +28,7 @@ A complete example with template variables and other features:
 from html5tagger import Document, E, Template
 
 # Create reusable templates
-Item = E.li.Name("Item") @ Template
+Item = Template(E.li.Name("Item"))
 
 # Create a document
 doc = Document(
@@ -83,7 +83,7 @@ The actual HTML output is similar. No whitespace is added to the document, it is
 
 ## Templating
 
-A document builder can be turned into a template by `Template(doc)` or `doc @ Template`. Templates prebuild all static content as long strings, leaving only capitalized placeholders to be filled in at render time. This provides extremely fast rendering and allows building a complex page out of clean components.
+A document builder can be turned into a template by `Template(doc)`. Templates prebuild all static content as long strings, leaving only capitalized placeholders to be filled in at render time. This provides extremely fast rendering and allows building a complex page out of clean components.
 
 The example below defines a page with `Title` reused for both the `<title>` and `<h1>`, and an `Items` list populated from a product list. Parentheses directly after a placeholder set its default value (empty by default).
 
@@ -91,7 +91,7 @@ The example below defines a page with `Title` reused for both the `<title>` and 
 from html5tagger import Document, E, Template
 
 # Define the reusable templates once
-Page = Document(E.Title).h1.Title.ul.Items @ Template
+Page = Template(Document(E.Title).h1.Title.ul.Items)
 Item = Template(E.li.span[".name"].Name._(": ").span[".price"].Price("N/A"))
 
 # Super fast rendering just fills in the dynamic data
@@ -118,7 +118,7 @@ html = render([
 </ul>
 ```
 
-A builder can be finalized into a template by `Template(...)` or `... @ Template`, whichever is syntactically preferred. The resulting `Template` object is immutable and is called with keyword arguments to render the placeholders. Template values follow the same escaping rules as `doc(...)`, and a list of builders or strings is expanded in place.
+A builder can be finalized into a template by `Template(...)`. The resulting `Template` object is immutable and is called with keyword arguments to render the placeholders. Template values follow the same escaping rules as `doc(...)`, and a list of builders or strings is expanded in place.
 
 ## Nesting
 

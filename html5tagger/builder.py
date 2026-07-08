@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
 
 from .html5 import omit_endtag
 from .util import (
@@ -19,10 +18,6 @@ from .util import (
     mangle,
     render_attributes,
 )
-
-if TYPE_CHECKING:
-    from .template import Template
-
 
 CSS_SELECTOR = re.compile(
     r"(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)(?:=(?P<value>[^\]]*))?\])"
@@ -128,15 +123,6 @@ class Builder:
 
     def __iter__(self):
         return str(self).__iter__()
-
-    def __matmul__(self, other: type[Template]) -> Template:
-        """Support ``builder @ Template`` to create a Template."""
-        # Avoid a circular import at module load time.
-        from .template import Template
-
-        if other is Template:
-            return Template(self)
-        return NotImplemented
 
     def __getattr__(self, name):
         """Names that don't begin with underscore are HTML tag names or template blocks."""
