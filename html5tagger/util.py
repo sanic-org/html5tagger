@@ -76,6 +76,45 @@ class AttributeSlot:
         return f"AttributeSlot({self.name!r}, {self.attr!r})"
 
 
+class ClassesAttributeSlot:
+    """Marker for a classes= placeholder inside a Builder.
+
+    Unlike a regular AttributeSlot, this slot accepts the same class
+    specification types as ``classes=`` (string, list, dict, iterable) and
+    renders them as a single ``class`` attribute.
+    """
+
+    __slots__ = ("name", "base", "default")
+
+    def __init__(self, name: str, base: str | None = None, default=None):
+        self.name = name
+        self.base = base
+        self.default = default
+
+    def _resolve(self, value):
+        if value is None or value is False or value is _OMIT or value is True:
+            return []
+        if isinstance(value, str):
+            return value.split()
+        if isinstance(value, dict):
+            return [k for k, v in value.items() if v]
+        return list(value)
+
+    def __call__(self, value):
+        classes = self._resolve(value)
+        if self.base:
+            classes = self.base.split() + classes
+        if not classes:
+            return ""
+        return " class=" + escape_attr_value(" ".join(classes))
+
+    def __str__(self):
+        return self(self.default)
+
+    def __repr__(self):
+        return f"ClassesAttributeSlot({self.name!r})"
+
+
 # Inline styles and scripts only escape the specific end tag
 esc_style = re.compile("</(style>)", re.IGNORECASE)
 esc_script = re.compile("</(script>)", re.IGNORECASE)
@@ -111,12 +150,16 @@ def _placeholder_default(placeholder) -> object:
 def attributes(attrs):
     ret = ""
     for k, v in attrs.items():
-        k = mangle(k)
         if v is None or v is False:
             continue
+        if isinstance(v, ClassesAttributeSlot):
+            segments: list[str | AttributeSlot | ClassesAttributeSlot] = [ret] if ret else []
+            segments.append(v)
+            return _attributes_with_slots(attrs, k, segments)
+        k = mangle(k)
         if not isinstance(v, str) and _is_placeholder_builder(v):
             # Switch to list mode so the Builder/Template can preserve the slot.
-            segments: list[str | AttributeSlot] = [ret] if ret else []
+            segments: list[str | AttributeSlot | ClassesAttributeSlot] = [ret] if ret else []
             placeholder = v._pieces[0]
             segments.append(AttributeSlot(placeholder.name, k, default=_placeholder_default(placeholder)))
             return _attributes_with_slots(attrs, k, segments)
@@ -134,6 +177,9 @@ def _attributes_with_slots(attrs, current_key, segments):
         if skip:
             if k == current_key:
                 skip = False
+            continue
+        if isinstance(v, ClassesAttributeSlot):
+            segments.append(v)
             continue
         k = mangle(k)
         if v is None or v is False:
@@ -153,7 +199,7 @@ def render_attributes(attr_result):
     """Render the result of attributes() to a plain string for non-template contexts."""
     if isinstance(attr_result, str):
         return attr_result
-    return "".join(str(seg) if isinstance(seg, AttributeSlot) else seg for seg in attr_result)
+    return "".join(str(seg) if isinstance(seg, (AttributeSlot, ClassesAttributeSlot)) else seg for seg in attr_result)
 
 
 def mangle(name):

@@ -1,4 +1,4 @@
-from .util import HTML, _render_attr, escape
+from .util import HTML, ClassesAttributeSlot, _render_attr, escape
 
 
 class Slot:
@@ -70,6 +70,15 @@ class Template:
                 for segment in piece.segments:
                     if isinstance(segment, str):
                         buffer.append(segment)
+                    elif isinstance(segment, ClassesAttributeSlot):
+                        flush()
+                        fragments.append(
+                            Slot(
+                                segment.name,
+                                default=segment.default,
+                                render=segment,
+                            )
+                        )
                     else:
                         # segment is an AttributeSlot
                         flush()

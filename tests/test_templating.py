@@ -169,6 +169,58 @@ def test_template_default_with_builder():
 ## Attribute slots
 
 
+def test_template_classes_slot_dict():
+    item = E.div(classes=E.ClassesTag) @ Template
+    assert str(item(ClassesTag={"foo": True, "bar": False, "baz": True})) == '<div class="foo baz"></div>'
+
+
+def test_template_classes_slot_str():
+    item = E.div(classes=E.ClassesTag) @ Template
+    assert str(item(ClassesTag="foo bar")) == '<div class="foo bar"></div>'
+
+
+def test_template_classes_slot_list():
+    item = E.div(classes=E.ClassesTag) @ Template
+    assert str(item(ClassesTag=["foo", "bar"])) == '<div class="foo bar"></div>'
+
+
+def test_template_classes_slot_omits_when_missing():
+    item = E.div(classes=E.ClassesTag) @ Template
+    assert str(item()) == "<div></div>"
+
+
+def test_template_classes_slot_combines_with_static_class():
+    item = E.div(class_="base", classes=E.ClassesTag) @ Template
+    assert str(item(ClassesTag="foo")) == '<div class="base foo"></div>'
+
+
+def test_template_classes_slot_combines_with_selector_class():
+    item = E.div[".base"](classes=E.ClassesTag) @ Template
+    assert str(item(ClassesTag="foo")) == '<div class="base foo"></div>'
+
+
+def test_template_classes_slot_default_str():
+    item = E.div(classes=E.ClassesTag("foo bar")) @ Template
+    assert str(item()) == '<div class="foo bar"></div>'
+    assert str(item(ClassesTag="baz")) == "<div class=baz></div>"
+
+
+def test_template_classes_slot_default_omits():
+    item = E.div(classes=E.ClassesTag(None)) @ Template
+    assert str(item()) == "<div></div>"
+
+
+def test_template_classes_slot_with_other_attributes():
+    item = E.div(id_="x", classes=E.ClassesTag, data_role="y") @ Template
+    assert str(item(ClassesTag="foo")) == "<div id=x class=foo data-role=y></div>"
+
+
+def test_template_classes_slot_non_template_rendering():
+    assert str(E.div(classes=E.ClassesTag("foo"))) == "<div class=foo></div>"
+    assert str(E.div(class_="base", classes=E.ClassesTag)) == "<div class=base></div>"
+    assert str(E.div(class_="base", classes=E.ClassesTag("foo"))) == '<div class="base foo"></div>'
+
+
 def test_template_attribute_slot():
     item = E.article(data_sku=E.Sku) @ Template
     assert str(item(Sku="ABC-123")) == '<article data-sku="ABC-123"></article>'

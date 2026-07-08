@@ -7,6 +7,9 @@ from .html5 import omit_endtag
 from .util import (
     _OMIT,
     AttributeSlot,
+    ClassesAttributeSlot,
+    _is_placeholder_builder,
+    _placeholder_default,
     attributes,
     esc_script,
     esc_style,
@@ -195,23 +198,39 @@ class Builder:
                 f"Can only add attrs to opening tags, got {tag!r}"
             )
             if (classes := _attrs.get("classes")) is not None:
-                assert "class_" not in _attrs, "Cannot specify both classes= and class_="
-                if isinstance(classes, str):
-                    classes = classes.split()
-                elif isinstance(classes, dict):
-                    classes = [k for k, v in classes.items() if v]
+                if not isinstance(classes, str) and _is_placeholder_builder(classes):
+                    # Defer classes= to render time so templates can supply
+                    # string/list/dict class specifications dynamically.
+                    static_class = _attrs.pop("class_", "")
+                    base = static_class.split() if static_class else []
+                    if m := TAG_ATTR.search(tag):
+                        existing = (g if (g := m.group(1)) is not None else m.group(2)).split()
+                        base = existing + base
+                        tag = tag[: m.start()] + tag[m.end() : -1] + ">"
+                    placeholder = classes._pieces[0]
+                    _attrs["classes"] = ClassesAttributeSlot(
+                        placeholder.name,
+                        base=" ".join(base) or None,
+                        default=_placeholder_default(placeholder),
+                    )
                 else:
-                    classes = list(classes)
-                if m := TAG_ATTR.search(tag):
-                    # Combine with existing class (from earlier [] or ())
-                    classes = (g if (g := m.group(1)) is not None else m.group(2)).split() + classes
-                    classes = " ".join(classes)
-                    tag = tag[: m.start()] + f" class={escape_attr_value(classes)}" + tag[m.end() :]
-                    del _attrs["classes"]
-                else:
-                    # New attribute, keeping ordering of kwargs
-                    _attrs["classes"] = " ".join(classes)
-                    _attrs = {"class" if k == "classes" else k: v for k, v in _attrs.items()}
+                    assert "class_" not in _attrs, "Cannot specify both classes= and class_="
+                    if isinstance(classes, str):
+                        classes = classes.split()
+                    elif isinstance(classes, dict):
+                        classes = [k for k, v in classes.items() if v]
+                    else:
+                        classes = list(classes)
+                    if m := TAG_ATTR.search(tag):
+                        # Combine with existing class (from earlier [] or ())
+                        classes = (g if (g := m.group(1)) is not None else m.group(2)).split() + classes
+                        classes = " ".join(classes)
+                        tag = tag[: m.start()] + f" class={escape_attr_value(classes)}" + tag[m.end() :]
+                        del _attrs["classes"]
+                    else:
+                        # New attribute, keeping ordering of kwargs
+                        _attrs["classes"] = " ".join(classes)
+                        _attrs = {"class" if k == "classes" else k: v for k, v in _attrs.items()}
             attr_result = attributes(_attrs)
             if isinstance(attr_result, str):
                 self._pieces[-1] = f"{tag[:-1]}{attr_result}>"
