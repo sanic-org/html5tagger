@@ -162,7 +162,8 @@ class Builder:
                     frags += " class=", m["class"]
                 else:
                     frags[class_value_idx] = f"{frags[class_value_idx]} {m['class']}"
-            elif attr := m["attribute"]:
+            else:
+                attr = m["attribute"]
                 value = m["value"]
                 if value is None:
                     frags += " ", attr
