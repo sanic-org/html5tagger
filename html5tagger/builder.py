@@ -112,7 +112,12 @@ class Builder:
             )
             if (classes := _attrs.get("classes")) is not None:
                 assert "class_" not in _attrs, "Cannot specify both classes= and class_="
-                classes = classes.split() if isinstance(classes, str) else list(classes)
+                if isinstance(classes, str):
+                    classes = classes.split()
+                elif isinstance(classes, dict):
+                    classes = [k for k, v in classes.items() if v]
+                else:
+                    classes = list(classes)
                 if m := TAG_ATTR.search(tag):
                     # Combine with existing class (from earlier [] or ())
                     classes = (g if (g := m.group(1)) is not None else m.group(2)).split() + classes
