@@ -236,6 +236,36 @@ def test_css_selector_underscore_attribute_not_mangled():
     assert str(snippet) == "<div data_test=value>Hello</div>"
 
 
+def test_css_selector_escaped_double_quote_in_double_quotes():
+    snippet = E.div[r'[data-value="foo\"bar"]']("Hello")
+    assert str(snippet) == '<div data-value="foo&quot;bar">Hello</div>'
+
+
+def test_css_selector_escaped_single_quote_in_single_quotes():
+    snippet = E.div[r"[data-value='foo\'bar']"]("Hello")
+    assert str(snippet) == '''<div data-value="foo'bar">Hello</div>'''
+
+
+def test_css_selector_escaped_backslash_in_double_quotes():
+    snippet = E.div[r'[data-value="foo\\bar"]']("Hello")
+    assert str(snippet) == '<div data-value="foo\\bar">Hello</div>'
+
+
+def test_css_selector_escaped_backslash_unquoted():
+    snippet = E.div[r'[data-value=foo\\bar]']("Hello")
+    assert str(snippet) == '<div data-value="foo\\bar">Hello</div>'
+
+
+def test_css_selector_only_escaped_quote():
+    snippet = E.div[r'[data-value="\""]']("Hello")
+    assert str(snippet) == '<div data-value="&quot;">Hello</div>'
+
+
+def test_css_selector_only_escaped_backslash():
+    snippet = E.div[r'[data-value="\\"]']("Hello")
+    assert str(snippet) == '<div data-value="\\">Hello</div>'
+
+
 def test_css_selector_invalid_type_raises():
     with pytest.raises(AssertionError):
         E.div[123]
@@ -248,6 +278,11 @@ def test_classes_str_appends():
 
 def test_classes_list_appends():
     snippet = E.div[".foo"]("Hello", classes=["bar", "baz"])
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_classes_generator_appends():
+    snippet = E.div[".foo"]("Hello", classes=(c for c in ["bar", "baz"]))
     assert str(snippet) == '<div class="foo bar baz">Hello</div>'
 
 
