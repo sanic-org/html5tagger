@@ -203,25 +203,6 @@ class Builder:
                 self._pieces.append(str(c.__html__() if hasattr(c, "__html__") else escape(c)))
         return self
 
-    def _optimize(self):
-        """Join adjacent text fragments."""
-        print("optimize")
-        newfrags = []
-        strfrags = []
-        for frag in self._pieces:
-            if isinstance(frag, str) or frag.name not in self._templates:
-                print("str", frag)
-                strfrags.append(str(frag))
-            else:
-                if strfrags:
-                    print(strfrags)
-                    newfrags.append("".join(strfrags))
-                    strfrags = []
-                newfrags.append(frag)
-        if strfrags:
-            newfrags.append("".join(strfrags))
-        self._pieces = newfrags
-
     ## With statement support for nested elements
 
     def __enter__(self):

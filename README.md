@@ -82,9 +82,11 @@ You can `str(doc)` to get the HTML code, and using `doc` directly usually has th
 
 The actual HTML output is similar. No whitespace is added to the document, it is all on one line unless the content contains newlines. You may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is HTML5: the document is standards-compliant with a lot less cruft.
 
-## Templating
+## Templating (v1 deprecated)
 
-Use template variables to build a document once and only update the dynamic parts at render time for faster performance. Access template variables via doc.TitleText and add content in parenthesis after the tag name. The underscore at the end of a tag name indicates the tag is added to the document and can have content in parenthesis, but any further tags on the same line go to the original document, not the template.
+> ⚠️ **Deprecation notice:** The v1.3 templating API is deprecated as of html5tagger 1.4 and will be removed in 2.0. If you rely on it, pin `html5tagger<2` in your dependencies. Otherwise, upgrade to html5tagger 2.0 for the new templating API.
+
+The old API lets you mutate template tags inside a `Builder` and later render the document. html5tagger 2.0 replaces this with immutable `Template` objects that you render by calling them with the desired slot values. Placeholders no longer use an underscore suffix: `doc.TagName` adds the placeholder to the document (in v1 `doc.TagName_` did so), and `doc.TagName(value)` sets a default. To migrate, remove the underscore and use `Template(doc)` to compile your document into a static template that can be called with `TagName=` keyword arguments to render HTML output.
 
 ## Nesting
 
@@ -92,7 +94,7 @@ In HTML5 elements such as `<p>` do not need any closing tag, so we can keep addi
 
 A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element. Use `(None)` to close an empty element if any subsequent content is not meant to go inside it, e.g. `doc.script(None, src="...")`.
 
-For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
+For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable.
 
 ```python
 with doc.ul:  # Nest using with
@@ -200,9 +202,7 @@ In the above benchmark html5tagger created the entire document from scratch, one
 
 There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable.
 
-In 2023 support for templating was added, allowing documents to be preformatted for all their static parts (as long strings), with only templates filled in between. This is a work on progress and has not been optimized yet.
-
-Pull requests are still welcome.
+The legacy templating API added as a draft in version 1.3 is deprecated as of version 1.4 and will be removed in 2.0, where it is replaced by a redesigned templating system. Users who depend on the old templating behaviour should pin `html5tagger<2`; all others are encouraged to upgrade to 2.0.
 
 ## Development
 
