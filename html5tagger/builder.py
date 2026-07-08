@@ -1,5 +1,13 @@
+import re
+
 from .html5 import omit_endtag
-from .util import attributes, esc_script, esc_style, escape, escape_special, mangle
+from .util import attributes, esc_script, esc_style, escape, escape_attr_value, escape_special, mangle
+
+CSS_SELECTOR = re.compile(
+    r"(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)(?:=(?P<value>[^\]]*))?\])"
+)
+TAG_ATTR = re.compile(r' class=(?:"([^"]*)"|([^\s>]*))')  # Matches class="..." or class=... in a tag
+BACKSLASH_ESC = re.compile(r"\\(.)")
 
 
 class Builder:
@@ -23,11 +31,7 @@ class Builder:
 
     @property
     def _allpieces(self):
-        retval = []
-        retval.extend(self._pieces)
-        retval.append(self._endtag)
-        retval.extend(self._stack[::-1])
-        return tuple(retval)
+        return *self._pieces, self._endtag, *self._stack[::-1]
 
     def _endtag_close(self):
         if self._endtag:
@@ -93,12 +97,12 @@ class Builder:
         template._clear()
         template(value)
 
-    def __call__(self, *_inner_content, **_attrs):
+    def __call__(self, *_content, **_attrs):
         """Add attributes and content to the current tag, or append to the document."""
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):
             assert not _attrs, "Cannot add attributes to a template placeholder"
-            self._pieces[-1](*_inner_content)
+            self._pieces[-1](*_content)
             return self
         # Add attributes and content to the current tag
         if _attrs:
@@ -106,10 +110,78 @@ class Builder:
             assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
                 f"Can only add attrs to opening tags, got {tag!r}"
             )
+            if (classes := _attrs.get("classes")) is not None:
+                assert "class_" not in _attrs, "Cannot specify both classes= and class_="
+                if isinstance(classes, str):
+                    classes = classes.split()
+                elif isinstance(classes, dict):
+                    classes = [k for k, v in classes.items() if v]
+                else:
+                    classes = list(classes)
+                if m := TAG_ATTR.search(tag):
+                    # Combine with existing class (from earlier [] or ())
+                    classes = (g if (g := m.group(1)) is not None else m.group(2)).split() + classes
+                    classes = " ".join(classes)
+                    tag = tag[: m.start()] + f" class={escape_attr_value(classes)}" + tag[m.end() :]
+                    del _attrs["classes"]
+                else:
+                    # New attribute, keeping ordering of kwargs
+                    _attrs["classes"] = " ".join(classes)
+                    _attrs = {"class" if k == "classes" else k: v for k, v in _attrs.items()}
             self._pieces[-1] = f"{tag[:-1]}{attributes(_attrs)}>"
-        if _inner_content:
-            self._(*_inner_content)
+        if _content:
+            self._(*_content)
             self._endtag_close()
+        return self
+
+    def __getitem__(self, item):
+        """Add attributes to the current tag using CSS selector syntax.
+
+        Supports #id, .class and [attribute=value] (or [attribute] for boolean
+        attributes). Multiple selectors may be combined in a single string.
+        """
+        assert isinstance(item, str), f"CSS selector syntax [] requires a string, got {item!r}."
+
+        tag = self._pieces[-1]
+        assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
+            f"Can only add attrs to opening tags, got {tag!r}"
+        )
+
+        frags = [tag[:-1]]
+        class_value_idx = None
+        last_end = 0
+        for m in CSS_SELECTOR.finditer(item):
+            assert m.start() == last_end, f"Invalid CSS selector: {item!r}"
+            last_end = m.end()
+            if m["id"]:
+                value = escape_attr_value(m["id"])
+                frags.extend([" id=", value])
+            elif m["class"]:
+                if class_value_idx is None:
+                    class_value_idx = len(frags) + 1
+                    frags += " class=", m["class"]
+                else:
+                    frags[class_value_idx] = f"{frags[class_value_idx]} {m['class']}"
+            elif attr := m["attribute"]:
+                value = m["value"]
+                if value is None:
+                    frags += " ", attr
+                else:
+                    # Unquote and unescape CSS selector value
+                    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                        value = value[1:-1]
+                    value = BACKSLASH_ESC.sub(r"\1", value)
+                    frags += " ", attr, "=", escape_attr_value(value)
+        assert last_end == len(item), f"Invalid CSS selector: {item!r}"
+        if class_value_idx is not None:
+            base = None
+            if m := TAG_ATTR.search(tag):
+                base = g if (g := m.group(1)) is not None else m.group(2)
+                frags[0] = tag[: m.start()] + tag[m.end() : -1]  # Remove class attribute and >
+                frags[class_value_idx] = f"{base} {frags[class_value_idx]}"
+            frags[class_value_idx] = escape_attr_value(frags[class_value_idx])
+        frags.append(">")
+        self._pieces[-1] = "".join(frags)
         return self
 
     def _(self, *_content):

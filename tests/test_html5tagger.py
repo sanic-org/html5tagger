@@ -181,3 +181,163 @@ def test_optimize(capsys):
 def test_attribute_skipping():
     snippet = E.input(type="text", disabled=False, hidden=None, checked=True)
     assert str(snippet) == "<input type=text checked>"
+
+
+def test_css_selector_id():
+    snippet = E.div["#main"]("Hello")
+    assert str(snippet) == "<div id=main>Hello</div>"
+
+
+def test_css_selector_class():
+    snippet = E.div[".container"]("Hello")
+    assert str(snippet) == "<div class=container>Hello</div>"
+
+
+def test_css_selector_multiple_classes():
+    snippet = E.div[".foo.bar.baz"]("Hello")
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_css_selector_attribute():
+    snippet = E.a["[href=/path]"]("Link")
+    assert str(snippet) == '<a href="/path">Link</a>'
+
+
+def test_css_selector_quoted_attribute():
+    snippet = E.div['[data-value="foo bar"]']("Hello")
+    assert str(snippet) == '<div data-value="foo bar">Hello</div>'
+
+
+def test_css_selector_boolean_attribute():
+    snippet = E.input["[disabled]"]()
+    assert str(snippet) == "<input disabled>"
+
+
+def test_css_selector_combined():
+    snippet = E.div["#main.container[data-role=widget]"]("Hello", classes="extra", foo=True)
+    assert str(snippet) == '<div id=main class="container extra" data-role=widget foo>Hello</div>'
+
+    snippet = E.div(classes="extra", foo=True)["#main.container[data-role=widget]"]("Hello")
+    assert str(snippet) == '<div foo id=main class="extra container" data-role=widget>Hello</div>'
+
+
+def test_css_selector_chained():
+    snippet = E.div[".card[data=foo]"]["#main.container"]("Hello")
+    assert str(snippet) == '<div data=foo id=main class="card container">Hello</div>'
+
+
+def test_css_selector_hyphenated_value():
+    snippet = E.div["[data-value=foo-bar]"]("Hello")
+    assert str(snippet) == '<div data-value="foo-bar">Hello</div>'
+
+
+def test_css_selector_underscore_attribute_not_mangled():
+    snippet = E.div["[data_test=value]"]("Hello")
+    assert str(snippet) == "<div data_test=value>Hello</div>"
+
+
+def test_css_selector_escaped_double_quote_in_double_quotes():
+    snippet = E.div[r'[data-value="foo\"bar"]']("Hello")
+    assert str(snippet) == '<div data-value="foo&quot;bar">Hello</div>'
+
+
+def test_css_selector_escaped_single_quote_in_single_quotes():
+    snippet = E.div[r"[data-value='foo\'bar']"]("Hello")
+    assert str(snippet) == """<div data-value="foo'bar">Hello</div>"""
+
+
+def test_css_selector_escaped_backslash_in_double_quotes():
+    snippet = E.div[r'[data-value="foo\\bar"]']("Hello")
+    assert str(snippet) == '<div data-value="foo\\bar">Hello</div>'
+
+
+def test_css_selector_escaped_backslash_unquoted():
+    snippet = E.div[r"[data-value=foo\\bar]"]("Hello")
+    assert str(snippet) == '<div data-value="foo\\bar">Hello</div>'
+
+
+def test_css_selector_only_escaped_quote():
+    snippet = E.div[r'[data-value="\""]']("Hello")
+    assert str(snippet) == '<div data-value="&quot;">Hello</div>'
+
+
+def test_css_selector_only_escaped_backslash():
+    snippet = E.div[r'[data-value="\\"]']("Hello")
+    assert str(snippet) == '<div data-value="\\">Hello</div>'
+
+
+def test_css_selector_invalid_type_raises():
+    with pytest.raises(AssertionError):
+        E.div[123]
+
+
+def test_css_selector_invalid_gap_raises():
+    with pytest.raises(AssertionError):
+        E.div["#main!.container"]
+
+
+def test_css_selector_invalid_trailing_junk_raises():
+    with pytest.raises(AssertionError):
+        E.div["#main bad"]
+
+
+def test_css_selector_invalid_leading_junk_raises():
+    with pytest.raises(AssertionError):
+        E.div["bad#main"]
+
+
+def test_css_selector_invalid_space_between_selectors_raises():
+    with pytest.raises(AssertionError):
+        E.div["#main .container"]
+
+
+def test_classes_str_appends():
+    snippet = E.div[".foo"]("Hello", classes="bar baz")
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_classes_list_appends():
+    snippet = E.div[".foo"]("Hello", classes=["bar", "baz"])
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_classes_generator_appends():
+    snippet = E.div[".foo"]("Hello", classes=(c for c in ["bar", "baz"]))
+    assert str(snippet) == '<div class="foo bar baz">Hello</div>'
+
+
+def test_classes_appends_to_class_attr():
+    snippet = E.div(class_="foo")("Hello", classes="bar")
+    assert str(snippet) == '<div class="foo bar">Hello</div>'
+
+
+def test_classes_preserve_class_kwarg_position():
+    snippet = E.div(id_="main", class_="foo", data_role="widget")("Hello", classes="bar")
+    assert str(snippet) == '<div id=main class="foo bar" data-role=widget>Hello</div>'
+
+
+def test_classes_preserve_classes_kwarg_position():
+    snippet = E.div(id_="me", classes=["foz", "baz"], foo="bar")
+    assert str(snippet) == '<div id=me class="foz baz" foo=bar></div>'
+
+
+def test_classes_empty_str_no_class():
+    snippet = E.div[".foo"]("Hello", classes="")
+    assert str(snippet) == "<div class=foo>Hello</div>"
+
+
+def test_classes_empty_list_no_class():
+    snippet = E.div[".foo"]("Hello", classes=[])
+    assert str(snippet) == "<div class=foo>Hello</div>"
+
+
+def test_classes_no_existing_class():
+    snippet = E.div("Hello", classes="foo bar")
+    assert str(snippet) == '<div class="foo bar">Hello</div>'
+
+
+def test_classes_on_template_placeholder_raises():
+    doc = Document()
+    assert doc.Head_ is doc
+    with pytest.raises(AssertionError):
+        doc(classes="foo")

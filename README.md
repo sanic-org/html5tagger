@@ -124,7 +124,7 @@ Works perfectly in browsers.
 
 ## Name mangling and boolean attributes
 
-Underscore at the end of name is ignored so that `class_` and `for_` among other attributes may be used despite being reserved words in Python. Other underscores convert into hyphens.
+Underscore at the end of name is ignored so that `for_` and other attributes may be used despite being reserved words in Python. Other underscores convert into hyphens.
 
 ⚠️ The above only is true for HTML elements and attributes, but template placeholders only use an ending underscore to denote that the it is to be placed on the document, rather than be fetched for use.
 
@@ -137,6 +137,45 @@ E.input(type="checkbox", id="somebox", checked=True).label(for_="somebox", aria_
 ```html
 <input type=checkbox id=somebox checked><label for=somebox aria-role=img>🥳</label>
 ```
+
+## Appending classes
+
+The special `classes` keyword argument in the call operator appends classes to the current element. It does not create a `classes` attribute; instead it merges the given classes into the existing `class` attribute (if any). This is useful for dynamic class lists, for example when combined with CSS selectors or when the class names come from variables.
+
+`classes` accepts a whitespace-separated string, a list of class strings, or a dictionary where each key is included as a class only if its value is truthy:
+
+```python
+doc.div(classes="foo bar")
+doc.div(classes=["foo", "bar"])
+doc.div(classes={"foo": True, "bar": False})
+```
+
+```html
+<div class="foo bar"></div>
+<div class="foo bar"></div>
+<div class=foo></div>
+```
+
+## CSS selector style attributes
+
+As an alternative to keyword arguments, attributes may be set using CSS selector syntax with the subscript (`[]`) operator. This supports `#id`, `.class` and `[attribute=value]`, including boolean attributes with `[attribute]`. This is only intended to be used with static content, and for any dynamic values you should follow the `[]` with a `()`.
+
+```python
+doc.main["#lead.container.article"]("Hello")
+doc.a["[href=/files]"]("a link")
+doc.input["[type=checkbox][checked]"]
+doc.div["#widget.foo[aria-label=Foo Widget]"](classes=["bar", "baz"], data_user=userid)
+```
+
+```html
+<main id=lead class="container article">Hello</main>
+<a href="/files">a link</a>
+<input type=checkbox checked>
+<div id=widget class="foo bar baz" aria-label="Foo Widget" data-user=user123>
+```
+
+Multiple selectors may be combined in one string and the `[]` and `()` operators may be chained. Overriding values already set is not possible. To append classes use the `classes` keyword argument in the call operator. The values can be single or double quoted or without quotes (no CSS restrictions, anything but `]` allowed). Limited support for backslash escapes is provided as well, e.g. for escaping the backslash itself or the quote character within a quoted value.
+
 
 ## Preformatted HTML
 
