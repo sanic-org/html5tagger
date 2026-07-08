@@ -126,7 +126,7 @@ In HTML5 elements such as `<p>` do not need any closing tag, so we can keep addi
 
 A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element, so we can do `doc.div[".foo"]("inside")` where the content still goes inside the div. `None` may be passed for content to close without content, e.g. `doc.div(None)("after")` produces `<div></div>after`.
 
-For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
+For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable.
 
 ```python
 with doc.ul:  # Nest using with
@@ -231,9 +231,7 @@ In the above benchmark html5tagger created the entire document from scratch, one
 
 There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable with only small incremental changes like the `script` and `style` special methods being added.
 
-The only major new development was the prebuilt template support. The draft implementation introduced in version 1.3.0 (2023) has been abandoned in 2.0 (2026) in favor of current implementation's clearer semantics, higher performance and flexibility to handle nested components with changing contents.
-
-Pull requests are still welcome.
+The templating API added as a draft in version 1.3 is deprecated as of version 1.4 and is removed in 2.0, where it is replaced by a redesigned templating system. Users who depend on the old templating behaviour should pin `html5tagger<2`; all others are encouraged to upgrade to 2.0 which is faster and more versatile.
 
 ## Development
 
