@@ -27,22 +27,24 @@ def escape(text):
     return HTML(str(text).replace("&", "&amp;").replace("<", "&lt;"))
 
 
+def escape_attr_value(value: str):
+    """Return an attribute value, quoting it when necessary."""
+    return value if value.isalnum() else f'''"{value.replace("&", "&amp;").replace('"', "&quot;")}"'''
+
+
 def _attr_value(value):
     """Render an attribute value, including the leading '=' and optional quotes."""
-    v = str(value)
-    if v.isalnum():
-        return "=" + v
-    return '="' + v.replace("&", "&amp;").replace('"', "&quot;") + '"'
+    return "=" + escape_attr_value(f"{value}")
 
 
 def _render_attr(attr: str, value) -> str:
     """Render a single attribute (name + value) like attributes() would.
 
-    Supports True (short attribute), None/False (omit), and normal values.
+    Supports True (short attribute), None/False/_OMIT (omit), and normal values.
     The leading space is included so the attribute can be dropped entirely
     when the value is None or False.
     """
-    if value is None or value is False:
+    if value is None or value is False or value is _OMIT:
         return ""
     if value is True:
         return " " + attr

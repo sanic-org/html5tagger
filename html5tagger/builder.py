@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING
 
 from .html5 import omit_endtag
@@ -10,6 +11,7 @@ from .util import (
     esc_script,
     esc_style,
     escape,
+    escape_attr_value,
     escape_special,
     mangle,
     render_attributes,
@@ -17,6 +19,13 @@ from .util import (
 
 if TYPE_CHECKING:
     from .template import Template
+
+
+CSS_SELECTOR = re.compile(
+    r"(?:#(?P<id>[\w-]+))|(?:\.(?P<class>[\w-]+))|(?:\[(?P<attribute>[\w-]+)(?:=(?P<value>[^\]]*))?\])"
+)
+TAG_ATTR = re.compile(r' class=(?:"([^"]*)"|([^\s>]*))')  # Matches class="..." or class=... in a tag
+BACKSLASH_ESC = re.compile(r"\\(.)")
 
 
 class AttributedTag:
@@ -80,11 +89,7 @@ class Builder:
 
     @property
     def _allpieces(self):
-        retval = []
-        retval.extend(self._pieces)
-        retval.append(self._endtag)
-        retval.extend(self._stack[::-1])
-        return tuple(retval)
+        return *self._pieces, self._endtag, *self._stack[::-1]
 
     def _endtag_close(self):
         if self._endtag:
@@ -138,13 +143,20 @@ class Builder:
         if name[0] == "_":
             return object.__getattribute__(self, name)
         # If name is uppercase, it is a Template placeholder.
-        # Uppercase names always insert the placeholder.
-        # If a tag is currently open, the placeholder becomes its content and
-        # the tag is closed (e.g. ``doc.span.Tag.br`` == ``<span>Tag</span><br>``).
         if name[0].isupper():
+            add_to_doc = name.endswith("_")
+            if add_to_doc:
+                name = name[:-1]
             builder = self._templates.get(name)
             if not builder:
                 builder = self._templates[name] = Builder(name=name)
+            if add_to_doc:
+                # Main style: doc.Head_ adds the placeholder and returns self.
+                self._pending_slot = None
+                self._pieces.append(builder)
+                return self
+            # Templating-redux style: accessing a placeholder inserts it and
+            # closes any open tag (e.g. ``doc.span.Tag.br`` == ``<span>Tag</span><br>``).
             self._pending_slot = builder
             self._pieces.append(builder)
             self._endtag_close()
@@ -158,7 +170,7 @@ class Builder:
             self._endtag = f"</{tagname}>"
         return self
 
-    def __call__(self, *_inner_content, **_attrs):
+    def __call__(self, *_content, **_attrs):
         """Add attributes and content to the current tag, or append to the document."""
         # Immediate call after a template placeholder access sets default value.
         if self._pending_slot is not None:
@@ -166,17 +178,16 @@ class Builder:
                 raise TypeError("Cannot add attributes to a template placeholder")
             slot = self._pending_slot
             self._pending_slot = None
-            slot._set_default(*_inner_content)
+            slot._set_default(*_content)
             return self
 
         # Template placeholder just added
         if self._pieces and isinstance(self._pieces[-1], Builder):
-            if _attrs:
-                raise TypeError("Cannot add attributes to a template placeholder")
+            assert not _attrs, "Cannot add attributes to a template placeholder"
             # Calling an uppercase placeholder sets/replaces its default value.
             # Use ._(...) after the placeholder for content that should come after it.
             slot = self._pieces[-1]
-            slot._set_default(*_inner_content)
+            slot._set_default(*_content)
             return self
 
         self._pending_slot = None
@@ -186,14 +197,82 @@ class Builder:
             assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
                 f"Can only add attrs to opening tags, got {tag!r}"
             )
+            if (classes := _attrs.get("classes")) is not None:
+                assert "class_" not in _attrs, "Cannot specify both classes= and class_="
+                if isinstance(classes, str):
+                    classes = classes.split()
+                elif isinstance(classes, dict):
+                    classes = [k for k, v in classes.items() if v]
+                else:
+                    classes = list(classes)
+                if m := TAG_ATTR.search(tag):
+                    # Combine with existing class (from earlier [] or ())
+                    classes = (g if (g := m.group(1)) is not None else m.group(2)).split() + classes
+                    classes = " ".join(classes)
+                    tag = tag[: m.start()] + f" class={escape_attr_value(classes)}" + tag[m.end() :]
+                    del _attrs["classes"]
+                else:
+                    # New attribute, keeping ordering of kwargs
+                    _attrs["classes"] = " ".join(classes)
+                    _attrs = {"class" if k == "classes" else k: v for k, v in _attrs.items()}
             attr_result = attributes(_attrs)
             if isinstance(attr_result, str):
                 self._pieces[-1] = f"{tag[:-1]}{attr_result}>"
             else:
                 self._pieces[-1] = AttributedTag(tag[:-1], attr_result)
-        if _inner_content:
-            self._(*_inner_content)
+        if _content:
+            self._(*_content)
             self._endtag_close()
+        return self
+
+    def __getitem__(self, item):
+        """Add attributes to the current tag using CSS selector syntax.
+
+        Supports #id, .class and [attribute=value] (or [attribute] for boolean
+        attributes). Multiple selectors may be combined in a single string.
+        """
+        assert isinstance(item, str), f"CSS selector syntax [] requires a string, got {item!r}."
+
+        tag = self._pieces[-1]
+        assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
+            f"Can only add attrs to opening tags, got {tag!r}"
+        )
+
+        frags = [tag[:-1]]
+        class_value_idx = None
+        last_end = 0
+        for m in CSS_SELECTOR.finditer(item):
+            assert m.start() == last_end, f"Invalid CSS selector: {item!r}"
+            last_end = m.end()
+            if m["id"]:
+                value = escape_attr_value(m["id"])
+                frags.extend([" id=", value])
+            elif m["class"]:
+                if class_value_idx is None:
+                    class_value_idx = len(frags) + 1
+                    frags += " class=", m["class"]
+                else:
+                    frags[class_value_idx] = f"{frags[class_value_idx]} {m['class']}"
+            elif attr := m["attribute"]:
+                value = m["value"]
+                if value is None:
+                    frags += " ", attr
+                else:
+                    # Unquote and unescape CSS selector value
+                    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                        value = value[1:-1]
+                    value = BACKSLASH_ESC.sub(r"\1", value)
+                    frags += " ", attr, "=", escape_attr_value(value)
+        assert last_end == len(item), f"Invalid CSS selector: {item!r}"
+        if class_value_idx is not None:
+            base = None
+            if m := TAG_ATTR.search(tag):
+                base = g if (g := m.group(1)) is not None else m.group(2)
+                frags[0] = tag[: m.start()] + tag[m.end() : -1]  # Remove class attribute and >
+                frags[class_value_idx] = f"{base} {frags[class_value_idx]}"
+            frags[class_value_idx] = escape_attr_value(frags[class_value_idx])
+        frags.append(">")
+        self._pieces[-1] = "".join(frags)
         return self
 
     def _(self, *_content):

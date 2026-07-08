@@ -92,7 +92,7 @@ from html5tagger import Document, E, Template
 
 # Define the reusable templates once
 Page = Document(E.Title).h1.Title.ul.Items @ Template
-Item = Template(E.li.span(class_="name").Name._(": ").span(class_="price").Price("N/A"))
+Item = Template(E.li.span[".name"].Name._(": ").span[".price"].Price("N/A"))
 
 # Super fast rendering just fills in the dynamic data
 def render(products: list) -> str:
@@ -124,7 +124,7 @@ A builder can be finalized into a template by `Template(...)` or `... @ Template
 
 In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close. This module does not use closing tags for any elements where those are optional or forbidden.
 
-A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element, so we can do `doc.div(class_="foo")("inside")` where the content still goes inside the div. `None` may be passed for content to close without content, e.g. `doc.div(None)("after")` produces `<div></div>after`.
+A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element, so we can do `doc.div[".foo"]("inside")` where the content still goes inside the div. `None` may be passed for content to close without content, e.g. `doc.div(None)("after")` produces `<div></div>after`.
 
 For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable. Unlike adding another tag, adding a template does NOT close its preceding tag but instead the variable goes inside any open element.
 
@@ -158,7 +158,7 @@ Works perfectly in browsers.
 
 ## Name mangling and boolean attributes
 
-Underscore at the end of a name is ignored so that `class_` and `for_` among other attributes may be used despite being reserved words in Python. Other underscores convert into hyphens.
+Underscore at the end of a name is ignored so that `for_` and other attributes may be used despite being reserved words in Python. Other underscores convert into hyphens.
 
 Boolean values convert into short attributes.
 
@@ -169,6 +169,44 @@ E.input(type="checkbox", id="somebox", checked=True).label(for_="somebox", aria_
 ```html
 <input type=checkbox id=somebox checked><label for=somebox aria-role=img>🥳</label>
 ```
+
+## Appending classes
+
+The special `classes` keyword argument in the call operator appends classes to the current element. It does not create a `classes` attribute; instead it merges the given classes into the existing `class` attribute (if any). This is useful for dynamic class lists, for example when combined with CSS selectors or when the class names come from variables.
+
+`classes` accepts a whitespace-separated string, a list of class strings, or a dictionary where each key is included as a class only if its value is truthy:
+
+```python
+doc.div(classes="foo bar")
+doc.div(classes=["foo", "bar"])
+doc.div(classes={"foo": True, "bar": False})
+```
+
+```html
+<div class="foo bar"></div>
+<div class="foo bar"></div>
+<div class=foo></div>
+```
+
+## CSS selector style attributes
+
+As an alternative to keyword arguments, attributes may be set using CSS selector syntax with the subscript (`[]`) operator. This supports `#id`, `.class` and `[attribute=value]`, including boolean attributes with `[attribute]`. This is only intended to be used with static content, and for any dynamic values you should follow the `[]` with a `()`.
+
+```python
+doc.main["#lead.container.article"]("Hello")
+doc.a["[href=/files]"]("a link")
+doc.input["[type=checkbox][checked]"]
+doc.div["#widget.foo[aria-label=Foo Widget]"](classes=["bar", "baz"], data_user=userid)
+```
+
+```html
+<main id=lead class="container article">Hello</main>
+<a href="/files">a link</a>
+<input type=checkbox checked>
+<div id=widget class="foo bar baz" aria-label="Foo Widget" data-user=user123>
+```
+
+Multiple selectors may be combined in one string and the `[]` and `()` operators may be chained. Overriding values already set is not possible. To append classes use the `classes` keyword argument in the call operator. The values can be single or double quoted or without quotes (no CSS restrictions, anything but `]` allowed). Limited support for backslash escapes is provided as well, e.g. for escaping the backslash itself or the quote character within a quoted value.
 
 ## Preformatted HTML
 

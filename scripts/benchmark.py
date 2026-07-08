@@ -34,6 +34,7 @@ Item = Template(
     )
 )
 
+
 # A realistic page shell: header, navigation, sidebar, main content, footer.
 # Only the Items slot is dynamic; everything else is prebuilt static HTML.
 Page = Template(
