@@ -329,3 +329,26 @@ def test_classes_on_template_placeholder_raises():
     assert doc.Head_ is doc
     with pytest.raises(AssertionError):
         doc(classes="foo")
+
+
+def test_builder_no_content_creates_empty():
+    snippet = Builder("Empty")
+    assert str(snippet) == ""
+
+
+def test_builder_matmul_not_implemented_for_non_template():
+    with pytest.raises(TypeError):
+        E.div @ int  # noqa: B018
+
+
+def test_builder_underscore_appends_none_is_ignored():
+    doc = Document()
+    doc._(None, "hello", None)
+    assert str(doc) == "<!DOCTYPE html>hello"
+
+
+def test_builder_underscore_appends_own_template_directly():
+    doc = Document(E.Title_)
+    title = doc._templates["Title"]
+    doc._(title)
+    assert doc._pieces[-1] is title

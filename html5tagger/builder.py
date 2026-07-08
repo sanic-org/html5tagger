@@ -44,10 +44,7 @@ class AttributedTag:
     def brief(self):
         """A shorter output for the repr() of the document."""
         value = str(self)
-        if len(value) > 100:
-            value = f":{value[:20]} ···"
-        elif value:
-            value = f":{value}"
+        value = f":{value[:20]} ···" if len(value) > 100 else f":{value}"
         return value
 
 
@@ -84,7 +81,7 @@ class Builder:
             self._pieces.append(_OMIT)
         elif len(_content) == 1 and isinstance(_content[0], bool):
             self._pieces.append(_content[0])
-        elif _content:
+        else:
             self._(*_content)
 
     @property

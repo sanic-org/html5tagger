@@ -83,13 +83,10 @@ class Template:
                 buffer.append(">")
             else:
                 # piece is a Builder
-                if piece.name in templates:
-                    flush()
-                    default = HTML(piece)
-                    fragments.append(Slot(piece.name, default, render=Template._render_value))
-                else:
-                    # Nested, non-slot builder: render once now.
-                    buffer.append(str(piece))
+                assert piece.name in templates, "Builder pieces must be template slots"
+                flush()
+                default = HTML(piece)
+                fragments.append(Slot(piece.name, default, render=Template._render_value))
         flush()
         return fragments
 

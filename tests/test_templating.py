@@ -320,3 +320,73 @@ def test_template_content_slot_none_not_rendered_as_text():
     assert str(item()) == "<div></div>"
     item = E.div(E.Name(True)) @ Template
     assert str(item()) == "<div>True</div>"
+
+
+def test_template_content_slot_none_value():
+    item = E.div(E.Name("default")) @ Template
+    assert str(item(Name=None)) == "<div></div>"
+
+
+def test_template_content_slot_non_string_non_iterable_value():
+    item = E.div(E.Name("default")) @ Template
+    assert str(item(Name=42)) == "<div>42</div>"
+
+
+def test_attributed_tag_brief():
+    from html5tagger.builder import AttributedTag
+
+    tag = E.div(data_id=E.Id("x"))
+    attributed = tag._pieces[0]
+    assert isinstance(attributed, AttributedTag)
+    assert attributed.brief.startswith(":<div data-id=x>")
+
+
+def test_attributed_tag_brief_long():
+    from html5tagger.builder import AttributedTag
+
+    tag = E.div(data_id=E.Id("x" * 200))
+    attributed = tag._pieces[0]
+    assert isinstance(attributed, AttributedTag)
+    assert "···" in attributed.brief
+
+
+def test_template_with_nested_non_slot_builder():
+    span = E.span("static")
+    item = Template(E.div(span))
+    assert str(item()) == "<div><span>static</span></div>"
+
+
+def test_template_placeholder_call_sets_default():
+    doc = Document()
+    doc.title.Title_("Default Title")
+    assert str(doc) == "<!DOCTYPE html><title>Default Title</title>"
+
+
+def test_attributes_with_slots_skips_false_and_renders_true():
+    from html5tagger.util import attributes
+
+    result = attributes({"href": E.Href("/x"), "disabled": False, "readonly": True})
+    rendered = "".join(str(seg) for seg in result)
+    assert 'href="/x"' in rendered
+    assert "disabled" not in rendered
+    assert "readonly" in rendered
+
+
+def test_render_attributes_with_segments():
+    from html5tagger.util import attributes, render_attributes
+
+    attr_result = attributes({"href": E.Href("/default"), "title": "foo"})
+    rendered = render_attributes(attr_result)
+    assert 'href="/default"' in rendered
+    assert "title=foo" in rendered
+
+
+def test_placeholder_default_with_multiple_pieces():
+    from html5tagger.builder import Builder
+    from html5tagger.util import _placeholder_default
+
+    placeholder = Builder("Tag")
+    placeholder._("a")
+    placeholder._("b")
+    default = _placeholder_default(placeholder)
+    assert str(default) == "ab"
