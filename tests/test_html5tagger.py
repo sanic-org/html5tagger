@@ -284,6 +284,11 @@ def test_classes_list_appends():
     assert str(snippet) == '<div class="foo bar baz">Hello</div>'
 
 
+def test_classes_dict_appends():
+    snippet = E.div[".foo"]("Hello", classes={"bar": True, "baz": False, "qux": True})
+    assert str(snippet) == '<div class="foo bar qux">Hello</div>'
+
+
 def test_classes_generator_appends():
     snippet = E.div[".foo"]("Hello", classes=(c for c in ["bar", "baz"]))
     assert str(snippet) == '<div class="foo bar baz">Hello</div>'
