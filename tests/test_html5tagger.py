@@ -243,7 +243,7 @@ def test_css_selector_escaped_double_quote_in_double_quotes():
 
 def test_css_selector_escaped_single_quote_in_single_quotes():
     snippet = E.div[r"[data-value='foo\'bar']"]("Hello")
-    assert str(snippet) == '''<div data-value="foo'bar">Hello</div>'''
+    assert str(snippet) == """<div data-value="foo'bar">Hello</div>"""
 
 
 def test_css_selector_escaped_backslash_in_double_quotes():
@@ -252,7 +252,7 @@ def test_css_selector_escaped_backslash_in_double_quotes():
 
 
 def test_css_selector_escaped_backslash_unquoted():
-    snippet = E.div[r'[data-value=foo\\bar]']("Hello")
+    snippet = E.div[r"[data-value=foo\\bar]"]("Hello")
     assert str(snippet) == '<div data-value="foo\\bar">Hello</div>'
 
 
@@ -269,6 +269,26 @@ def test_css_selector_only_escaped_backslash():
 def test_css_selector_invalid_type_raises():
     with pytest.raises(AssertionError):
         E.div[123]
+
+
+def test_css_selector_invalid_gap_raises():
+    with pytest.raises(AssertionError):
+        E.div["#main!.container"]
+
+
+def test_css_selector_invalid_trailing_junk_raises():
+    with pytest.raises(AssertionError):
+        E.div["#main bad"]
+
+
+def test_css_selector_invalid_leading_junk_raises():
+    with pytest.raises(AssertionError):
+        E.div["bad#main"]
+
+
+def test_css_selector_invalid_space_between_selectors_raises():
+    with pytest.raises(AssertionError):
+        E.div["#main .container"]
 
 
 def test_classes_str_appends():
