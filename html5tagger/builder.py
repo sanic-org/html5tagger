@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .nullbuilder import _NullBuilder
 
 from .html5 import omit_endtag
 from .nullbuilder import NullBuilder
@@ -32,15 +36,15 @@ class AttributedTag:
 
     __slots__ = ("prefix", "segments")
 
-    def __init__(self, prefix: str, segments: list[str | AttributeSlot]):
+    def __init__(self, prefix: str, segments: list[str | AttributeSlot | ClassesAttributeSlot]):
         self.prefix = prefix
         self.segments = segments
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.prefix}{''.join(str(s) for s in self.segments)}>"
 
     @property
-    def brief(self):
+    def brief(self) -> str:
         """A shorter output for the repr() of the document."""
         value = str(self)
         value = f":{value[:20]} ···" if len(value) > 100 else f":{value}"
@@ -56,18 +60,18 @@ class Builder:
     E.g. Document("page title", lang="en").div(id="main")("Hello World!")
     """
 
-    def __init__(self, name):
+    def __init__(self, name: str) -> None:
         self.name = name
         self._clear()
 
-    def _clear(self):
-        self._pieces = []  # Document content
-        self._templates = {}  # Template builders
+    def _clear(self) -> None:
+        self._pieces: list = []  # Document content
+        self._templates: dict[str, Builder] = {}  # Template builders
         self._endtag = ""
-        self._stack = []
-        self._pending_slot = None
+        self._stack: list[str] = []
+        self._pending_slot: Builder | None = None
 
-    def _set_default(self, *_content):
+    def _set_default(self, *_content) -> None:
         """Set a placeholder's default value.
 
         ``None``/``False``/no argument produces a sentinel that omits the
@@ -87,13 +91,13 @@ class Builder:
     def _allpieces(self):
         return *self._pieces, self._endtag, *self._stack[::-1]
 
-    def _endtag_close(self):
+    def _endtag_close(self) -> None:
         if self._endtag:
             self._pieces.append(self._endtag)
             self._endtag = ""
 
     @property
-    def brief(self):
+    def brief(self) -> str:
         """A shorter output for the repr() of the document."""
         value = str(self)
         if len(value) > 100:
@@ -102,8 +106,8 @@ class Builder:
             value = f":{value}"
         return f"《{self.name}{value}》"
 
-    def __repr__(self):
-        def fmt(frag):
+    def __repr__(self) -> str:
+        def fmt(frag) -> str:
             if isinstance(frag, Builder):
                 return frag.brief
             if isinstance(frag, AttributedTag):
@@ -117,7 +121,7 @@ class Builder:
             ret = f"{ret[:1000]} ··· {ret[-1000:]}"
         return f"《{self.name}》\n{ret}" if len(ret) > 100 else self.brief
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "".join([str(frag) for frag in self._allpieces])
 
     _repr_html_ = __html__ = __str__
@@ -125,7 +129,7 @@ class Builder:
     def __iter__(self):
         return str(self).__iter__()
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Builder:
         """Names that don't begin with underscore are HTML tag names or template blocks."""
         if name[0] == "_":
             return object.__getattribute__(self, name)
@@ -157,7 +161,7 @@ class Builder:
             self._endtag = f"</{tagname}>"
         return self
 
-    def __call__(self, *_content, **_attrs):
+    def __call__(self, *_content, **_attrs) -> Builder:
         """Add attributes and content to the current tag, or append to the document."""
         # Immediate call after a template placeholder access sets default value.
         if self._pending_slot is not None:
@@ -228,7 +232,7 @@ class Builder:
             self._endtag_close()
         return self
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: bool | str) -> Builder | _NullBuilder:
         """Add CSS selector attributes, or return NullBuilder for False."""
         if isinstance(item, bool):
             return self if item else NullBuilder
@@ -269,7 +273,7 @@ class Builder:
         assert last_end == len(item), f"Invalid CSS selector: {item!r}"
         if class_value_idx is not None:
             base = None
-            if m := TAG_ATTR.search(tag):
+            if m := TAG_ATTR.search(tag):  # type: ignore[assignment]
                 base = g if (g := m.group(1)) is not None else m.group(2)
                 frags[0] = tag[: m.start()] + tag[m.end() : -1]  # Remove class attribute and >
                 frags[class_value_idx] = f"{base} {frags[class_value_idx]}"
@@ -278,7 +282,7 @@ class Builder:
         self._pieces[-1] = "".join(frags)
         return self
 
-    def _(self, *_content):
+    def _(self, *_content) -> Builder:
         """Append new content without closing the current tag."""
         self._pending_slot = None
         for c in _content:
@@ -299,32 +303,32 @@ class Builder:
 
     ## With statement support for nested elements
 
-    def __enter__(self):
+    def __enter__(self) -> Builder:
         assert self._endtag, "With statement may only be used with non-void elements."
         self._stack.append(self._endtag)
         self._endtag = ""
         return self
 
-    def __exit__(self, w, t, f):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self._endtag_close()
         self._pieces.append(self._stack.pop())
 
     ## HTML5 elements and comments special methods
 
-    def _comment(self, text):
+    def _comment(self, text) -> Builder:
         """Add an HTML comment."""
         text = str(text).replace("-->", "‒‒>")
         self._pieces.append(f"<!--{text}-->")
         return self
 
-    def script(self, code: str | None = None, **attrs):
+    def script(self, code: str | None = None, **attrs) -> Builder:
         """Add inline JavaScript correctly escaped."""
         self._endtag_close()
         code = escape_special(esc_script, code) if code else ""
         self._pieces.append(f"<script{render_attributes(attributes(attrs))}>{code}</script>")
         return self
 
-    def style(self, code: str | None = None, **attrs):
+    def style(self, code: str | None = None, **attrs) -> Builder:
         """Add inline CSS correctly escaped."""
         self._endtag_close()
         code = escape_special(esc_style, code) if code else ""

@@ -107,6 +107,46 @@ def cov_combine(session):
 
 
 @nox.session(python=TOOLS_PYTHON)
+def badges(session):
+    """Generate test and coverage badges using genbadge."""
+    from pathlib import Path
+
+    session.install("genbadge[coverage,tests]")
+
+    # Ensure docs/img directory exists
+    img_dir = Path("docs/img")
+    img_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate coverage badge from coverage.xml
+    coverage_xml = Path("coverage.xml")
+    if coverage_xml.exists():
+        session.run(
+            "genbadge",
+            "coverage",
+            "-i",
+            "coverage.xml",
+            "-o",
+            "docs/img/coverage-badge.svg",
+        )
+    else:
+        session.warn("coverage.xml not found, skipping coverage badge")
+
+    # Generate tests badge from JUnit XML
+    tests_xml = Path("tests-results.xml")
+    if tests_xml.exists():
+        session.run(
+            "genbadge",
+            "tests",
+            "-i",
+            "tests-results.xml",
+            "-o",
+            "docs/img/tests-badge.svg",
+        )
+    else:
+        session.warn("tests-results.xml not found, skipping tests badge")
+
+
+@nox.session(python=TOOLS_PYTHON)
 def clean(session):
     """Clean build artifacts and caches."""
     session.notify("cov-clean")

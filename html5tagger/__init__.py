@@ -1,5 +1,7 @@
 """Generate HTML5 documents directly in Python."""
 
+from __future__ import annotations
+
 from importlib.metadata import version
 
 __all__ = "Builder", "Document", "E", "HTML", "Template"

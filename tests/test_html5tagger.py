@@ -275,7 +275,7 @@ def test_conditional_false_swallows_chained_calls():
 def test_conditional_getitem_still_rejects_non_bool_non_string():
     doc = Document()
     with pytest.raises(AssertionError):
-        doc[123]
+        doc[123]  # type: ignore
 
 
 def test_nullbuilder_getitem_returns_self():
@@ -293,7 +293,7 @@ def test_nullbuilder_private_attribute_raises():
 
 def test_css_selector_invalid_type_raises():
     with pytest.raises(AssertionError):
-        E.div[123]
+        E.div[123]  # type: ignore
 
 
 def test_css_selector_invalid_gap_raises():

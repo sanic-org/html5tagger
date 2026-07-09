@@ -132,7 +132,7 @@ def test_template_does_not_mutate_builder():
 
 def test_template_only_accepts_builder():
     with pytest.raises(TypeError):
-        Template("not a builder")
+        Template("not a builder")  # type: ignore
 
 
 def test_template_placeholder_rejects_attributes():
@@ -190,7 +190,7 @@ def test_template_classes_slot_combines_with_static_class():
 
 
 def test_template_classes_slot_combines_with_selector_class():
-    item = Template(E.div[".base"](classes=E.ClassesTag))
+    item = Template(E.div[".base"](classes=E.ClassesTag))  # type: ignore
     assert str(item(ClassesTag="foo")) == '<div class="base foo"></div>'
 
 
@@ -208,6 +208,11 @@ def test_template_classes_slot_default_omits():
 def test_template_classes_slot_with_other_attributes():
     item = Template(E.div(id_="x", classes=E.ClassesTag, data_role="y"))
     assert str(item(ClassesTag="foo")) == "<div id=x class=foo data-role=y></div>"
+
+
+def test_template_classes_slot_with_placeholder_attribute():
+    item = Template(E.div(href=E.Link, classes=E.ClassesTag))
+    assert str(item(Link="/foo", ClassesTag="foo")) == '<div href="/foo" class=foo></div>'
 
 
 def test_template_classes_slot_non_template_rendering():

@@ -1,4 +1,10 @@
+from __future__ import annotations
+
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .builder import Builder
 
 
 class _OmitAttribute:
@@ -23,16 +29,16 @@ class HTML(str):
         return f"HTML({super().__repr__()})"
 
 
-def escape(text):
+def escape(text) -> HTML:
     return HTML(str(text).replace("&", "&amp;").replace("<", "&lt;"))
 
 
-def escape_attr_value(value: str):
+def escape_attr_value(value: str) -> str:
     """Return an attribute value, quoting it when necessary."""
     return value if value.isalnum() else f'''"{value.replace("&", "&amp;").replace('"', "&quot;")}"'''
 
 
-def _attr_value(value):
+def _attr_value(value) -> str:
     """Render an attribute value, including the leading '=' and optional quotes."""
     return "=" + escape_attr_value(f"{value}")
 
@@ -91,7 +97,7 @@ class ClassesAttributeSlot:
         self.base = base
         self.default = default
 
-    def _resolve(self, value):
+    def _resolve(self, value) -> list[str]:
         if value is None or value is False or value is _OMIT or value is True:
             return []
         if isinstance(value, str):
@@ -100,7 +106,7 @@ class ClassesAttributeSlot:
             return [k for k, v in value.items() if v]
         return list(value)
 
-    def __call__(self, value):
+    def __call__(self, value) -> str:
         classes = self._resolve(value)
         if self.base:
             classes = self.base.split() + classes
@@ -120,7 +126,7 @@ esc_style = re.compile("</(style>)", re.IGNORECASE)
 esc_script = re.compile("</(script>)", re.IGNORECASE)
 
 
-def escape_special(tag: re.Pattern[str], text):
+def escape_special(tag: re.Pattern[str], text: str) -> HTML:
     return HTML(tag.sub(r"<\\/\1", text))
 
 
@@ -134,7 +140,7 @@ def _is_placeholder_builder(value):
     return isinstance(name, str) and name and name[0].isupper()
 
 
-def _placeholder_default(placeholder) -> object:
+def _placeholder_default(placeholder: Builder):
     """Extract the default value from a placeholder builder for attribute slots."""
     pieces = getattr(placeholder, "_pieces", None)
     if not pieces:
@@ -159,7 +165,7 @@ def attributes(attrs):
         k = mangle(k)
         if not isinstance(v, str) and _is_placeholder_builder(v):
             # Switch to list mode so the Builder/Template can preserve the slot.
-            segments: list[str | AttributeSlot | ClassesAttributeSlot] = [ret] if ret else []
+            segments: list[str | AttributeSlot | ClassesAttributeSlot] = [ret] if ret else []  # type: ignore[no-redef]
             placeholder = v._pieces[0]
             segments.append(AttributeSlot(placeholder.name, k, default=_placeholder_default(placeholder)))
             return _attributes_with_slots(attrs, k, segments)
@@ -170,7 +176,11 @@ def attributes(attrs):
     return ret
 
 
-def _attributes_with_slots(attrs, current_key, segments):
+def _attributes_with_slots(
+    attrs,
+    current_key,
+    segments: list[str | AttributeSlot | ClassesAttributeSlot],
+) -> list[str | AttributeSlot | ClassesAttributeSlot]:
     """Continue processing attrs after the first slot was found at current_key."""
     skip = True
     for k, v in attrs.items():
@@ -195,14 +205,14 @@ def _attributes_with_slots(attrs, current_key, segments):
     return segments
 
 
-def render_attributes(attr_result):
+def render_attributes(attr_result) -> str:
     """Render the result of attributes() to a plain string for non-template contexts."""
     if isinstance(attr_result, str):
         return attr_result
     return "".join(str(seg) if isinstance(seg, (AttributeSlot, ClassesAttributeSlot)) else seg for seg in attr_result)
 
 
-def mangle(name):
+def mangle(name: str) -> str:
     """Mangle Python identifiers into HTML tag/attribute names.
 
     Underscores are converted into hyphens. Underscore at end is removed."""

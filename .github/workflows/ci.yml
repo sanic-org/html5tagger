@@ -54,9 +54,11 @@ jobs:
           path: tests-results.xml
 
   coverage:
-    name: Coverage Report
+    name: Coverage Report & Badges
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -77,6 +79,15 @@ jobs:
 
       - name: Combine coverage and generate reports
         run: uv run nox -s cov-combine
+
+      - name: Generate badges
+        run: uv run nox -s badges
+
+      - name: Commit badges
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update test and coverage badges [skip ci]"
+          file_pattern: "docs/img/*-badge.svg"
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

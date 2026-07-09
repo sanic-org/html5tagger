@@ -1,9 +1,15 @@
 # HTML5 templating with Pure Python
 
+[![PyPI version](https://badge.fury.io/py/html5tagger.svg)](https://pypi.org/project/html5tagger/)
+![Tests](https://raw.githubusercontent.com/sanic-org/html5tagger/main/docs/img/tests-badge.svg)
+![Coverage](https://raw.githubusercontent.com/sanic-org/html5tagger/main/docs/img/coverage-badge.svg)
+
 If you're looking for a more efficient and streamlined way to generate HTML5, look no further than html5tagger! This is a super fast HTML generation module that can run faster than Jinja2. But the main difference is you'll be writing HTML tags with Python syntax, from your code. No special templating language control structures and no typing in HTML.
 
-```sh
-pip install html5tagger
+Use [UV](https://docs.astral.sh/uv/getting-started/installation/) to add it to your project dependencies:
+
+```bash
+uv add html5tagger
 ```
 
 ## Intro

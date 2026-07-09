@@ -1,4 +1,11 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .util import HTML, ClassesAttributeSlot, _render_attr, escape
+
+if TYPE_CHECKING:
+    from .builder import Builder
 
 
 class Slot:
@@ -6,12 +13,12 @@ class Slot:
 
     __slots__ = ("name", "default", "render")
 
-    def __init__(self, name: str, default: str = "", render=None):
+    def __init__(self, name: str, default="", render=None):
         self.name = name
         self.default = default
         self.render = render
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Slot({self.name!r})"
 
 
@@ -32,22 +39,22 @@ class Template:
 
     __slots__ = ("_fragments",)
 
-    def __init__(self, builder):
+    def __init__(self, builder: Builder):
         from .builder import Builder
 
         if not isinstance(builder, Builder):
             raise TypeError("Template expects a Builder instance")
-        self._fragments = tuple(self._flatten(builder, builder._templates))
+        self._fragments: tuple[str | Slot, ...] = tuple(self._flatten(builder, builder._templates))
 
     @staticmethod
-    def _flatten(builder, templates):
+    def _flatten(builder: Builder, templates: dict[str, Builder]) -> list[str | Slot]:
         """Convert a Builder into a flat list of strings and Slots."""
         from .builder import AttributedTag
 
         fragments: list[str | Slot] = []
         buffer: list[str] = []
 
-        def flush():
+        def flush() -> None:
             if buffer:
                 fragments.append("".join(buffer))
                 buffer.clear()
@@ -95,19 +102,19 @@ class Template:
         flush()
         return fragments
 
-    def __call__(self, **values):
+    def __call__(self, **values) -> HTML:
         """Render the template with the supplied slot values."""
-        parts = []
+        parts: list[str] = []
         for fragment in self._fragments:
             if isinstance(fragment, str):
                 parts.append(fragment)
             else:
                 value = values.get(fragment.name, fragment.default)
-                parts.append(fragment.render(value))
+                parts.append(fragment.render(value))  # type: ignore
         return HTML("".join(parts))
 
     @staticmethod
-    def _render_value(value):
+    def _render_value(value) -> str:
         if value is None:
             return ""
         if hasattr(value, "__html__"):
@@ -118,5 +125,5 @@ class Template:
             return "".join(Template._render_value(v) for v in value)
         return str(escape(value))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"Template({self._fragments!r})"
