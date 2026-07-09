@@ -1,8 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+
 from .builder import Builder
 from .util import HTML
 
 
-def Document(*title, _urls=None, _viewport=False, **html_attrs) -> Builder:
+def Document(
+    *title,
+    _urls: Iterable[str] | None = None,
+    _viewport: bool | str = False,
+    **html_attrs,
+) -> Builder:
     """Construct a new document with a DOCTYPE and minimal structure.
 
     The html tag is added if any attributes are provided for it.
