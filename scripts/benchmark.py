@@ -116,18 +116,14 @@ def render_with_template(products: list[dict[str, str]]) -> str:
 def render_with_jinja(products: list[dict[str, str]]) -> str:
     """Render the same page using a pre-loaded Jinja template (autoescape enabled)."""
     if JinjaPage is None:
-        raise RuntimeError(
-            "Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`"
-        )
+        raise RuntimeError("Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`")
     return JinjaPage.render(products=products)
 
 
 def render_with_jinja_runtime(products: list[dict[str, str]]) -> str:
     """Render the same page by loading the Jinja template at runtime each call."""
     if jinja2 is None:
-        raise RuntimeError(
-            "Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`"
-        )
+        raise RuntimeError("Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`")
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(Path(__file__).parent),
         autoescape=True,
@@ -247,16 +243,11 @@ def main() -> None:
 
     number = 1000
     t_full = timeit.timeit(lambda: render_from_scratch(products), number=number)
-    t_full_selectors = timeit.timeit(
-        lambda: render_with_selectors(products), number=number
-    )
+    t_full_selectors = timeit.timeit(lambda: render_with_selectors(products), number=number)
     t_template = timeit.timeit(lambda: render_with_template(products), number=number)
 
     def row(label: str, t: float) -> str:
-        return (
-            f"  {label:<29} {t * 1000 / number:8.3f} ms  "
-            f"({t * 1_000_000 / number / len(products):2.0f} µs/item)"
-        )
+        return f"  {label:<29} {t * 1000 / number:8.3f} ms  ({t * 1_000_000 / number / len(products):2.0f} µs/item)"
 
     print(f"Single page render time (averaged over {number} renders):")
     print(row("Full generation:", t_full))
@@ -267,13 +258,9 @@ def main() -> None:
     j2 = ""
     if jinja2 is not None:
         print("\nJinja for comparison:")
-        t_jinja_file = timeit.timeit(
-            lambda: render_with_jinja_runtime(products), number=number
-        )
+        t_jinja_file = timeit.timeit(lambda: render_with_jinja_runtime(products), number=number)
         print(row("Template file:", t_jinja_file))
-        t_jinja_preloaded = timeit.timeit(
-            lambda: render_with_jinja(products), number=number
-        )
+        t_jinja_preloaded = timeit.timeit(lambda: render_with_jinja(products), number=number)
         print(row("Template preloaded:", t_jinja_preloaded))
         j2 = f", and {(t_jinja_preloaded / t_template):.1f}x faster than Jinja (preloaded; {(t_jinja_file / t_template):.1f}x file)"
 
