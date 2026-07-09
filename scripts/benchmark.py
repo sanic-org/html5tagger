@@ -13,6 +13,11 @@ from __future__ import annotations
 
 import timeit
 
+try:
+    import jinja2
+except ImportError:
+    jinja2 = None
+
 from html5tagger import Document, E, Template
 
 # Pre-construct reusable templates once, in the style of the README example.
@@ -79,6 +84,15 @@ Page = Template(
     )
 )
 
+# Equivalent Jinja2 template for comparison (autoescape enabled).
+JINJA_PAGE_SOURCE = """<!DOCTYPE html><html lang="en"><meta charset="utf-8"><title>Shop</title><link href="style.css" rel="stylesheet"><script src="app.js" defer></script><header class="site-header"><div class="container"><a class="logo" href="/">Shop</a><nav class="main-nav"><a href="/">Home</a><a href="/products">Products</a><a href="/about">About</a><a href="/contact">Contact</a></nav></div></header><main class="main"><div class="container"><aside class="sidebar"><h2>Categories</h2><ul><li>Electronics<li>Clothing<li>Home & Garden<li>Sports<li>Books</ul></aside><section class="content"><h1>Products</h1><div class="product-grid">{% for p in products %}<article class="product-card" data-sku="{{ p.SKU }}"><div class="product-image"><span class="placeholder">{{ p.Initial }}</span></div><div class="product-body"><h3 class="product-name">{{ p.Name }}</h3><p class="product-desc">{{ p.Desc }}<div class="product-meta"><span class="product-price">{{ p.Price }}</span><span class="product-stock">{{ p.Stock }}</span></div><a class="product-detail" href="/product/view">Details</a></div></article>{% endfor %}</div></section></div></main><footer class="site-footer"><div class="container"><p>&copy; 2026 Shop. All rights reserved.</p></div></footer>"""
+
+if jinja2 is not None:
+    _jinja_env = jinja2.Environment(autoescape=True)
+    JinjaPage = _jinja_env.from_string(JINJA_PAGE_SOURCE)
+else:
+    JinjaPage = None
+
 
 def make_products(count: int = 100) -> list[dict[str, str]]:
     categories = ("Electronics", "Clothing", "Home", "Sports", "Books")
@@ -98,6 +112,15 @@ def make_products(count: int = 100) -> list[dict[str, str]]:
 def render_with_template(products: list[dict[str, str]]) -> str:
     """Render using pre-built templates."""
     return Page(Items=[Item(**p) for p in products])
+
+
+def render_with_jinja2(products: list[dict[str, str]]) -> str:
+    """Render the same page using a Jinja2 template (autoescape enabled)."""
+    if JinjaPage is None:
+        raise RuntimeError(
+            "jinja2 is not installed; run `uv add --group dev jinja2` or `pip install jinja2`"
+        )
+    return JinjaPage.render(products=products)
 
 
 def render_from_scratch(products: list[dict[str, str]]) -> str:
@@ -217,8 +240,23 @@ def main() -> None:
     print(
         f"  With CSS selectors: {t_selectors * 1000 / number:8.3f} ms  ({t_selectors * 1_000_000 / number / len(products):.2f} µs/item)"
     )
-    print()
-    print(f"Template is {t_scratch / t_template:.1f}x faster than building from scratch")
+
+    if jinja2 is not None:
+        html_jinja = render_with_jinja2(products)
+        # Jinja2 quotes all attributes, so the byte output differs slightly,
+        # but the rendered page should be semantically equivalent.
+        assert len(html_jinja) > 0.9 * len(html_template), "Jinja2 output suspiciously short!"
+        t_jinja = timeit.timeit(lambda: render_with_jinja2(products), number=number)
+        print(
+            f"  Jinja2 template:    {t_jinja * 1000 / number:8.3f} ms  ({t_jinja * 1_000_000 / number / len(products):.2f} µs/item)"
+        )
+        print()
+        print(f"Template is {t_scratch / t_template:.1f}x faster than building from scratch")
+        print(f"Template is {t_jinja / t_template:.1f}x faster than Jinja2")
+    else:
+        print()
+        print(f"Template is {t_scratch / t_template:.1f}x faster than building from scratch")
+        print("(Install jinja2 to compare with Jinja2 templating)")
 
 
 if __name__ == "__main__":

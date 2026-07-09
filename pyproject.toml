@@ -35,7 +35,10 @@ Repository = "https://github.com/sanic-org/html5tagger"
 Issues = "https://github.com/sanic-org/html5tagger/issues"
 
 [dependency-groups]
-dev = ["nox"]
+dev = [
+    "jinja2>=3.1.6",
+    "nox",
+]
 test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
