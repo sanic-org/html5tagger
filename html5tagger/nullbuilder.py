@@ -1,6 +1,8 @@
 class _NullBuilder:
     """Silently discards any attempts to add content."""
 
+    __slots__ = ()
+
     def __getattr__(self, name: str):
         return object.__getattribute__(self, name) if name[0] == "_" and name != "_" else self
 
