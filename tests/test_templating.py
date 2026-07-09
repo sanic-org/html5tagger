@@ -210,6 +210,11 @@ def test_template_classes_slot_with_other_attributes():
     assert str(item(ClassesTag="foo")) == "<div id=x class=foo data-role=y></div>"
 
 
+def test_template_classes_slot_with_placeholder_attribute():
+    item = Template(E.div(href=E.Link, classes=E.ClassesTag))
+    assert str(item(Link="/foo", ClassesTag="foo")) == '<div href="/foo" class=foo></div>'
+
+
 def test_template_classes_slot_non_template_rendering():
     assert str(E.div(classes=E.ClassesTag("foo"))) == "<div class=foo></div>"
     assert str(E.div(class_="base", classes=E.ClassesTag)) == "<div class=base></div>"
