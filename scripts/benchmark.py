@@ -1,17 +1,14 @@
 """Benchmark: stateless Template callable vs. building items from scratch.
 
 Run with:
-
+    uv sync --group benchmark
     uv run python benchmark.py
-
-or, after installing the package in editable form:
-
-    python benchmark.py
 """
 
 from __future__ import annotations
 
 import timeit
+from pathlib import Path
 
 try:
     import jinja2
@@ -84,12 +81,14 @@ Page = Template(
     )
 )
 
-# Equivalent Jinja2 template for comparison (autoescape enabled).
-JINJA_PAGE_SOURCE = """<!DOCTYPE html><html lang="en"><meta charset="utf-8"><title>Shop</title><link href="style.css" rel="stylesheet"><script src="app.js" defer></script><header class="site-header"><div class="container"><a class="logo" href="/">Shop</a><nav class="main-nav"><a href="/">Home</a><a href="/products">Products</a><a href="/about">About</a><a href="/contact">Contact</a></nav></div></header><main class="main"><div class="container"><aside class="sidebar"><h2>Categories</h2><ul><li>Electronics<li>Clothing<li>Home & Garden<li>Sports<li>Books</ul></aside><section class="content"><h1>Products</h1><div class="product-grid">{% for p in products %}<article class="product-card" data-sku="{{ p.SKU }}"><div class="product-image"><span class="placeholder">{{ p.Initial }}</span></div><div class="product-body"><h3 class="product-name">{{ p.Name }}</h3><p class="product-desc">{{ p.Desc }}<div class="product-meta"><span class="product-price">{{ p.Price }}</span><span class="product-stock">{{ p.Stock }}</span></div><a class="product-detail" href="/product/view">Details</a></div></article>{% endfor %}</div></section></div></main><footer class="site-footer"><div class="container"><p>&copy; 2026 Shop. All rights reserved.</p></div></footer>"""
-
+# Equivalent Jinja template for comparison (autoescape enabled).
+# Loaded from a file and pretty-formatted, as in normal Jinja use.
 if jinja2 is not None:
-    _jinja_env = jinja2.Environment(autoescape=True)
-    JinjaPage = _jinja_env.from_string(JINJA_PAGE_SOURCE)
+    _jinja_env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(Path(__file__).parent),
+        autoescape=True,
+    )
+    JinjaPage = _jinja_env.get_template("benchmark.html.jinja")
 else:
     JinjaPage = None
 
@@ -114,13 +113,27 @@ def render_with_template(products: list[dict[str, str]]) -> str:
     return Page(Items=[Item(**p) for p in products])
 
 
-def render_with_jinja2(products: list[dict[str, str]]) -> str:
-    """Render the same page using a Jinja2 template (autoescape enabled)."""
+def render_with_jinja(products: list[dict[str, str]]) -> str:
+    """Render the same page using a pre-loaded Jinja template (autoescape enabled)."""
     if JinjaPage is None:
         raise RuntimeError(
-            "jinja2 is not installed; run `uv add --group dev jinja2` or `pip install jinja2`"
+            "Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`"
         )
     return JinjaPage.render(products=products)
+
+
+def render_with_jinja_runtime(products: list[dict[str, str]]) -> str:
+    """Render the same page by loading the Jinja template at runtime each call."""
+    if jinja2 is None:
+        raise RuntimeError(
+            "Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`"
+        )
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(Path(__file__).parent),
+        autoescape=True,
+    )
+    template = env.get_template("benchmark.html.jinja")
+    return template.render(products=products)
 
 
 def render_from_scratch(products: list[dict[str, str]]) -> str:
@@ -221,42 +234,51 @@ def main() -> None:
     html_selectors = render_with_selectors(products)
     assert html_template == html_scratch == html_selectors, "Outputs differ!"
 
-    print(f"Generated HTML length: {len(html_template)} bytes")
-    print(f"Number of products:    {len(products)}")
+    html_jinja = render_with_jinja(products) if jinja2 is not None else None
+    if html_jinja is not None:
+        # Jinja quotes all attributes, so the byte output differs slightly,
+        # but the rendered page should be semantically equivalent.
+        assert len(html_jinja) > 0.9 * len(html_template), "Jinja output suspiciously short!"
+
+    jinja_len = f" (Jinja {len(html_jinja)} bytes)" if html_jinja is not None else ""
+    print(f"Generated HTML length:  {len(html_template)} bytes{jinja_len}")
+    print(f"Product items on page:  {len(products)}")
     print()
 
     number = 1000
+    t_full = timeit.timeit(lambda: render_from_scratch(products), number=number)
+    t_full_selectors = timeit.timeit(
+        lambda: render_with_selectors(products), number=number
+    )
     t_template = timeit.timeit(lambda: render_with_template(products), number=number)
-    t_scratch = timeit.timeit(lambda: render_from_scratch(products), number=number)
-    t_selectors = timeit.timeit(lambda: render_with_selectors(products), number=number)
+
+    def row(label: str, t: float) -> str:
+        return (
+            f"  {label:<29} {t * 1000 / number:8.3f} ms  "
+            f"({t * 1_000_000 / number / len(products):2.0f} µs/item)"
+        )
 
     print(f"Single page render time (averaged over {number} renders):")
-    print(
-        f"  Template callable:  {t_template * 1000 / number:8.3f} ms  ({t_template * 1_000_000 / number / len(products):.2f} µs/item)"
-    )
-    print(
-        f"  Build from scratch: {t_scratch * 1000 / number:8.3f} ms  ({t_scratch * 1_000_000 / number / len(products):.2f} µs/item)"
-    )
-    print(
-        f"  With CSS selectors: {t_selectors * 1000 / number:8.3f} ms  ({t_selectors * 1_000_000 / number / len(products):.2f} µs/item)"
-    )
+    print(row("Full generation:", t_full))
+    print(row("Full generation w/ selectors:", t_full_selectors))
+    print(row("Template:", t_template))
 
+    t_jinja_file = t_jinja_preloaded = 0
+    j2 = ""
     if jinja2 is not None:
-        html_jinja = render_with_jinja2(products)
-        # Jinja2 quotes all attributes, so the byte output differs slightly,
-        # but the rendered page should be semantically equivalent.
-        assert len(html_jinja) > 0.9 * len(html_template), "Jinja2 output suspiciously short!"
-        t_jinja = timeit.timeit(lambda: render_with_jinja2(products), number=number)
-        print(
-            f"  Jinja2 template:    {t_jinja * 1000 / number:8.3f} ms  ({t_jinja * 1_000_000 / number / len(products):.2f} µs/item)"
+        print("\nJinja for comparison:")
+        t_jinja_file = timeit.timeit(
+            lambda: render_with_jinja_runtime(products), number=number
         )
-        print()
-        print(f"Template is {t_scratch / t_template:.1f}x faster than building from scratch")
-        print(f"Template is {t_jinja / t_template:.1f}x faster than Jinja2")
-    else:
-        print()
-        print(f"Template is {t_scratch / t_template:.1f}x faster than building from scratch")
-        print("(Install jinja2 to compare with Jinja2 templating)")
+        print(row("Template file:", t_jinja_file))
+        t_jinja_preloaded = timeit.timeit(
+            lambda: render_with_jinja(products), number=number
+        )
+        print(row("Template preloaded:", t_jinja_preloaded))
+        j2 = f", and {(t_jinja_preloaded / t_template):.1f}x faster than Jinja (preloaded; {(t_jinja_file / t_template):.1f}x file)"
+
+    print()
+    print(f"Templating is {(t_full / t_template):.1f}x faster than from-scratch generation{j2}.")
 
 
 if __name__ == "__main__":
