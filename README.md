@@ -1,10 +1,6 @@
-# HTML5 Generation with html5tagger: Fast, Pure Python, No Dependencies
+# HTML5 templating with Pure Python
 
-If you're looking for a more efficient and streamlined way to generate HTML5, look no further than html5tagger! This module provides a simplified HTML5 syntax, so you can create your entire document template using only Python. Say goodbye to the clunky and error-prone process of manually writing HTML tags.
-
-With html5tagger, you can safely and quickly generate HTML5 without any dependencies, making it the perfect solution for developers who value speed and simplicity. And with its pure Python implementation, you'll never have to worry about compatibility issues or adding extra libraries to your project.
-
-Ready to streamline your page rendering process? It is super fast to get started. Trust us, once you try html5tagger, you'll never go back to Jinja2 or manual HTML writing again!
+If you're looking for a more efficient and streamlined way to generate HTML5, look no further than html5tagger! This is a super fast HTML generation module that can run faster than Jinja2. But the main difference is you'll be writing HTML tags with Python syntax, from your code. No special templating language control structures and no typing in HTML.
 
 ```sh
 pip install html5tagger
@@ -27,9 +23,6 @@ A complete example with template variables and other features:
 ```python
 from html5tagger import Document, E, Template
 
-# Create reusable templates
-Item = Template(E.li.Name("Item"))
-
 # Create a document
 doc = Document(
     "Demo",                 # The first argument is for <title>
@@ -44,7 +37,7 @@ doc.p("A paragraph with ").a("a link", href="/files")(" and ").em("formatting")
 
 # Use templates to render dynamic content
 doc.h1("Demo")
-doc.ul._(Item(Name="Apple"), Item(Name="Banana"))
+doc.ul.li("Apple").li("Banana")
 
 # Use with for complex nesting (not often needed)
 with doc.table(id="data"):
@@ -69,7 +62,10 @@ You can `str(doc)` to get the HTML code, and using `doc` directly usually has th
 <link href="manifest.json" rel=manifest>
 <p>A paragraph with <a href="/files">a link</a> and <em>formatting</em>
 <h1>Demo</h1>
-<ul><li>Apple<li>Banana</ul>
+<ul>
+  <li>Apple
+  <li>Banana
+</ul>
 <table id=data>
   <tr><th>First<th>Second<th>Third
   <tr><td>0<td>0<td>0
@@ -92,7 +88,7 @@ from html5tagger import Document, E, Template
 
 # Define the reusable templates once
 Page = Template(Document(E.Title).h1.Title.ul.Items)
-Item = Template(E.li.span[".name"].Name._(": ").span[".price"].Price("N/A"))
+Item = Template(E.li.span[".name"].Name.span[".price"].Price("N/A"))
 
 # Super fast rendering just fills in the dynamic data
 def render(products: list) -> str:
@@ -113,8 +109,8 @@ html = render([
 <title>Product List</title>
 <h1>Product List</h1>
 <ul>
-  <li><span class=name>Apple</span>: <span class=price>$1.20</span>
-  <li><span class=name>Banana</span>: <span class=price>N/A</span>
+  <li><span class=name>Apple</span><span class=price>$1.20</span>
+  <li><span class=name>Banana</span><span class=price>N/A</span>
 </ul>
 ```
 
@@ -208,7 +204,6 @@ doc.div["#widget.foo[aria-label=Foo Widget]"](classes=["bar", "baz"], data_user=
 
 Multiple selectors may be combined in one string and the `[]` and `()` operators may be chained. Overriding values already set is not possible. To append classes use the `classes` keyword argument in the call operator. The values can be single or double quoted or without quotes (no CSS restrictions, anything but `]` allowed). Limited support for backslash escapes is provided as well, e.g. for escaping the backslash itself or the quote character within a quoted value.
 
-
 ## Conditional elements
 
 A boolean inside the subscript operator conditionally includes the element
@@ -217,9 +212,8 @@ the surrounding code still runs normally.
 
 ```python
 with doc[use_highlight].mark:
-    doc._("Highlighted when enabled.")
+    doc("Highlighted when enabled.")
 ```
-
 
 ## Preformatted HTML
 
@@ -245,23 +239,3 @@ In the above benchmark html5tagger created the entire document from scratch, one
 There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable with only small incremental changes like the `script` and `style` special methods being added.
 
 The templating API added as a draft in version 1.3 is deprecated as of version 1.4 and is removed in 2.0, where it is replaced by a redesigned templating system. Users who depend on the old templating behaviour should pin `html5tagger<2`; all others are encouraged to upgrade to 2.0 which is faster and more versatile.
-
-## Development
-
-This project uses [uv](https://docs.astral.sh/uv/) for dependency management,
-[nox](https://nox.thea.codes/) for task automation, [ruff](https://docs.astral.sh/ruff/)
-for linting and formatting, and [ty](https://docs.astral.sh/ty/) for type checking.
-
-Set up the environment and run the full test suite:
-
-```sh
-uv sync
-uv run nox
-```
-
-Run only linting or tests:
-
-```sh
-uv run nox -s lint
-uv run nox -s test
-```
