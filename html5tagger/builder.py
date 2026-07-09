@@ -1,6 +1,7 @@
 import re
 
 from .html5 import omit_endtag
+from .nullbuilder import NullBuilder
 from .util import attributes, esc_script, esc_style, escape, escape_attr_value, escape_special, mangle
 
 CSS_SELECTOR = re.compile(
@@ -135,12 +136,11 @@ class Builder:
         return self
 
     def __getitem__(self, item):
-        """Add attributes to the current tag using CSS selector syntax.
+        """Add CSS selector attributes, or return NullBuilder for False."""
+        if isinstance(item, bool):
+            return self if item else NullBuilder
 
-        Supports #id, .class and [attribute=value] (or [attribute] for boolean
-        attributes). Multiple selectors may be combined in a single string.
-        """
-        assert isinstance(item, str), f"CSS selector syntax [] requires a string, got {item!r}."
+        assert isinstance(item, str), f"CSS selector syntax [] requires a string or bool, got {item!r}."
 
         tag = self._pieces[-1]
         assert tag[0] == "<" and tag[-1] == ">" and not tag.startswith("</"), (
