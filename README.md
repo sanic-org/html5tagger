@@ -25,81 +25,113 @@ E.p("Powered by:").br.a(href="...")("html5tagger")
 A complete example with template variables and other features:
 
 ```python
-from html5tagger import Document, E
+from html5tagger import Document, E, Template
+
+# Create reusable templates
+Item = Template(E.li.Name("Item"))
 
 # Create a document
 doc = Document(
-    E.TitleText_,           # The first argument is for <title>, adding variable TitleText
+    "Demo",                 # The first argument is for <title>
     lang="en",              # Keyword arguments for <html> attributes
 
     # Just list the resources you need, no need to remember link/script tags
     _urls=[ "style.css", "favicon.png", "manifest.json" ]
 )
 
-# Upper case names are template variables. You can modify them later.
-doc.Head_
-doc.h1.TitleText_("Demo")   # Goes inside <h1> and updates <title> as well
-
 # This has been a hard problem for DOM other such generators:
 doc.p("A paragraph with ").a("a link", href="/files")(" and ").em("formatting")
+
+# Use templates to render dynamic content
+doc.h1("Demo")
+doc.ul._(Item(Name="Apple"), Item(Name="Banana"))
 
 # Use with for complex nesting (not often needed)
 with doc.table(id="data"):
     doc.tr.th("First").th("Second").th("Third")
-    doc.TableRows_
+    for row in range(3):
+        doc.tr
+        for col in range(3):
+            doc.td(row * col)
 
-# Let's add something to the template variables
-doc.Head._script("console.log('</script> escaping is weird')")
-
-table = doc.TableRows
-for row in range(10):
-    table.tr
-    for col in range(3):
-        table.td(row * col)
-
-# Or remove the table data we just added
-doc.TableRows = None
+# Add inline scripts or styles with special escaping
+doc.script("console.log('</script> escaping is weird')")
 ```
 
-You can `str(doc)` to get the HTML code, and using `doc` directly usually has the desired effect as well (e.g. giving HTML responses). Jupyter Notebooks render it as HTML. For debugging, use `repr(doc)` where the templating variables are visible:
+You can `str(doc)` to get the HTML code, and using `doc` directly usually has the desired effect as well (e.g. giving HTML responses). Jupyter Notebooks render it as HTML. For debugging, use `repr(doc)`:
 
 ```html
 >>> doc
 《Document Builder》
-<!DOCTYPE html><html lang=en><meta charset="utf-8">
-<title>《TitleText:Demo》</title>
+<!DOCTYPE html><html lang=en><meta charset="utf-8"><title>Demo</title>
 <link href="style.css" rel=stylesheet>
 <link href="favicon.png" rel=icon type="image/png">
 <link href="manifest.json" rel=manifest>
-《Head:<script>console.log('<\/script> escaping is weird')</script>》
-<h1>《TitleText:Demo》</h1>
 <p>A paragraph with <a href="/files">a link</a> and <em>formatting</em>
+<h1>Demo</h1>
+<ul><li>Apple<li>Banana</ul>
 <table id=data>
   <tr><th>First<th>Second<th>Third
-  《TableRows》
+  <tr><td>0<td>0<td>0
+  <tr><td>0<td>1<td>2
+  <tr><td>0<td>2<td>4
 </table>
+<script>console.log('<\/script> escaping is weird')</script>
 ```
 
 The actual HTML output is similar. No whitespace is added to the document, it is all on one line unless the content contains newlines. You may notice that `body` and other familiar tags are missing and that the escaping is very minimal. This is HTML5: the document is standards-compliant with a lot less cruft.
 
-## Templating (v1 deprecated)
+## Templating
 
-> ⚠️ **Deprecation notice:** The v1.3 templating API is deprecated as of html5tagger 1.4 and will be removed in 2.0. If you rely on it, pin `html5tagger<2` in your dependencies. Otherwise, upgrade to html5tagger 2.0 for the new templating API.
+A document builder can be turned into a template by `Template(doc)`. Templates prebuild all static content as long strings, leaving only capitalized placeholders to be filled in at render time. This provides extremely fast rendering and allows building a complex page out of clean components.
 
-The old API lets you mutate template tags inside a `Builder` and later render the document. html5tagger 2.0 replaces this with immutable `Template` objects that you render by calling them with the desired slot values. Placeholders no longer use an underscore suffix: `doc.TagName` adds the placeholder to the document (in v1 `doc.TagName_` did so), and `doc.TagName(value)` sets a default. To migrate, remove the underscore and use `Template(doc)` to compile your document into a static template that can be called with `TagName=` keyword arguments to render HTML output.
+The example below defines a page with `Title` reused for both the `<title>` and `<h1>`, and an `Items` list populated from a product list. Parentheses directly after a placeholder set its default value (empty by default).
+
+```python
+from html5tagger import Document, E, Template
+
+# Define the reusable templates once
+Page = Template(Document(E.Title).h1.Title.ul.Items)
+Item = Template(E.li.span[".name"].Name._(": ").span[".price"].Price("N/A"))
+
+# Super fast rendering just fills in the dynamic data
+def render(products: list) -> str:
+    return Page(
+        Title="Product List",
+        Items=[Item(**product) for product in products],
+    )
+
+html = render([
+    {"Name": "Apple", "Price": "$1.20"},
+    {"Name": "Banana"},
+])
+```
+
+```html
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Product List</title>
+<h1>Product List</h1>
+<ul>
+  <li><span class=name>Apple</span>: <span class=price>$1.20</span>
+  <li><span class=name>Banana</span>: <span class=price>N/A</span>
+</ul>
+```
+
+A builder can be finalized into a template by `Template(...)`. The resulting `Template` object is immutable and is called with keyword arguments to render the placeholders. Template values follow the same escaping rules as `doc(...)`, and a list of builders or strings is expanded in place.
 
 ## Nesting
 
 In HTML5 elements such as `<p>` do not need any closing tag, so we can keep adding content without worrying of when it should close. This module does not use closing tags for any elements where those are optional or forbidden.
 
-A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element. Use `(None)` to close an empty element if any subsequent content is not meant to go inside it, e.g. `doc.script(None, src="...")`.
+A tag is automatically closed when you add content to it or when another tag is added. Setting attributes alone does not close an element, so we can do `doc.div[".foo"]("inside")` where the content still goes inside the div. `None` may be passed for content to close without content, e.g. `doc.div(None)("after")` produces `<div></div>after`.
 
 For elements like `<table>` and `<ul>`, you can use `with` blocks, pass sub-snippet arguments, or add a template variable.
 
 ```python
 with doc.ul:  # Nest using with
     doc.li("Write HTML in Python")
-    doc.li("Simple syntax").ul(id="inner").InnerList_  # Nest using template
+    doc.li("Simple syntax").ul(id="inner").InnerList  # Nest using template
     doc.li("No need for brackets or closing tags")
     doc.ul(E.li("Easy").li("Peasy"))  # Nest using (...)
 ```
@@ -126,9 +158,7 @@ Works perfectly in browsers.
 
 ## Name mangling and boolean attributes
 
-Underscore at the end of name is ignored so that `for_` and other attributes may be used despite being reserved words in Python. Other underscores convert into hyphens.
-
-⚠️ The above only is true for HTML elements and attributes, but template placeholders only use an ending underscore to denote that the it is to be placed on the document, rather than be fetched for use.
+Underscore at the end of a name is ignored so that `for_` and other attributes may be used despite being reserved words in Python. Other underscores convert into hyphens.
 
 Boolean values convert into short attributes.
 
@@ -212,9 +242,9 @@ In the above benchmark html5tagger created the entire document from scratch, one
 
 ## Further development
 
-There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable.
+There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable with only small incremental changes like the `script` and `style` special methods being added.
 
-The legacy templating API added as a draft in version 1.3 is deprecated as of version 1.4 and will be removed in 2.0, where it is replaced by a redesigned templating system. Users who depend on the old templating behaviour should pin `html5tagger<2`; all others are encouraged to upgrade to 2.0.
+The templating API added as a draft in version 1.3 is deprecated as of version 1.4 and is removed in 2.0, where it is replaced by a redesigned templating system. Users who depend on the old templating behaviour should pin `html5tagger<2`; all others are encouraged to upgrade to 2.0 which is faster and more versatile.
 
 ## Development
 

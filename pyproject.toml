@@ -99,7 +99,7 @@ select = [
 ]
 ignore = [
     "E501",  # line too long (handled by formatter)
-    "B018",  # useless expression (html5tagger uses attribute access for side effects)
+    "B018",  # html5tagger's fluent API uses side-effecting attribute access
 ]
 
 [tool.ruff.lint.per-file-ignores]

@@ -1,12 +1,13 @@
-"""Generate HTML5 documents directly from Python code."""
+"""Generate HTML5 documents directly in Python."""
 
 from importlib.metadata import version
 
-__all__ = "Builder", "Document", "E", "HTML"
+__all__ = "Builder", "Document", "E", "HTML", "Template"
 __version__ = version("html5tagger")
 
 from . import builder, document, makebuilder, util
 from .builder import Builder
 from .document import Document
 from .makebuilder import E
+from .template import Template
 from .util import HTML
