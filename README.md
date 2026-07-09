@@ -223,17 +223,6 @@ Any preformatted HTML may be wrapped in `html5tagger.HTML(string_of_html)` to av
 
 ⚠️ Do not use `HTML()` for text, in particular not on messages sent by users, that may contain HTML that you didn't intend to execute as HTML.
 
-## Performance
-
-```python
-%timeit str(Document("benchmarking", lang="en", _urls=("foo.js", "bar.js")))
-14 µs ± 153 ns per loop (mean ± std. dev. of 7 runs, 100,000 loops each)
-```
-
-Jinja2 renders similar document from memory template within about 10 µs but it doesn't need to format any of the HTML. When Templating is similarly used with html5tagger, the rendering times drop to about 4 µs.
-
-In the above benchmark html5tagger created the entire document from scratch, one element and attribute at a time. Unless you are creating very large documents dynamically, this should be quite fast enough.
-
 ## Further development
 
 There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable with only small incremental changes like the `script` and `style` special methods being added.
