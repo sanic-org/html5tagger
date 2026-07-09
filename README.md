@@ -208,6 +208,19 @@ doc.div["#widget.foo[aria-label=Foo Widget]"](classes=["bar", "baz"], data_user=
 
 Multiple selectors may be combined in one string and the `[]` and `()` operators may be chained. Overriding values already set is not possible. To append classes use the `classes` keyword argument in the call operator. The values can be single or double quoted or without quotes (no CSS restrictions, anything but `]` allowed). Limited support for backslash escapes is provided as well, e.g. for escaping the backslash itself or the quote character within a quoted value.
 
+
+## Conditional elements
+
+A boolean inside the subscript operator conditionally includes the element
+that follows. When `False`, the tag and any chained call are skipped, but
+the surrounding code still runs normally.
+
+```python
+with doc[use_highlight].mark:
+    doc._("Highlighted when enabled.")
+```
+
+
 ## Preformatted HTML
 
 All content is automatically escaped, unless it provides an `__html__` method that returns a string in HTML format. Similarly, the builder objects of this module expose `__html__` and `_repr_html_` accessors that allow them to be rendered as HTML in Jupyter Notebooks and various other systems that follow this convention.

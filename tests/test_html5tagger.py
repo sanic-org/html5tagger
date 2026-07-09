@@ -249,6 +249,48 @@ def test_css_selector_only_escaped_backslash():
     assert str(snippet) == '<div data-value="\\">Hello</div>'
 
 
+def test_conditional_true_opens_tag():
+    doc = Document()
+    use_highlight = True
+    with doc[use_highlight].mark:
+        doc._("Highlighted")
+    assert str(doc) == "<!DOCTYPE html><mark>Highlighted</mark>"
+
+
+def test_conditional_false_only_skips_tag():
+    doc = Document()
+    use_highlight = False
+    with doc[use_highlight].mark:
+        doc._("Still added")
+    assert str(doc) == "<!DOCTYPE html>Still added"
+
+
+def test_conditional_false_swallows_chained_calls():
+    doc = Document()
+    doc[False].mark("Ignored")
+    doc._("Kept")
+    assert str(doc) == "<!DOCTYPE html>Kept"
+
+
+def test_conditional_getitem_still_rejects_non_bool_non_string():
+    doc = Document()
+    with pytest.raises(AssertionError):
+        doc[123]
+
+
+def test_nullbuilder_getitem_returns_self():
+    nb = Document()[False]
+    assert nb["anything"] is nb
+    assert nb[True] is nb
+    assert nb[False] is nb
+
+
+def test_nullbuilder_private_attribute_raises():
+    nb = Document()[False]
+    with pytest.raises(AttributeError):
+        nb._pieces
+
+
 def test_css_selector_invalid_type_raises():
     with pytest.raises(AssertionError):
         E.div[123]
