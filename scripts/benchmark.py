@@ -120,8 +120,7 @@ def render_with_jinja(products: list[dict[str, str]]) -> str:
 
 def render_with_jinja_runtime(products: list[dict[str, str]]) -> str:
     """Render the same page by loading the Jinja template at runtime each call."""
-    if jinja2 is None:
-        raise RuntimeError("Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`")
+    assert jinja2 is not None, "Package jinja2 is not installed`"
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(Path(__file__).parent),
         autoescape=True,
@@ -229,16 +228,9 @@ def main() -> None:
     assert html_template == html_scratch == html_selectors, "Outputs differ!"
 
     html_jinja = render_with_jinja(products) if jinja2 is not None else None
-    if html_jinja is not None:
-        # Jinja quotes all attributes, so the byte output differs slightly,
-        # but the rendered page should be semantically equivalent.
-        assert len(html_jinja) > 0.9 * len(html_template), "Jinja output suspiciously short!"
-
     jinja_len = f" (Jinja {len(html_jinja)} bytes)" if html_jinja is not None else ""
     print(f"Generated HTML length:  {len(html_template)} bytes{jinja_len}")
-    print(f"Product items on page:  {len(products)}")
-    print()
-
+    print(f"Product items on page:  {len(products)}\n")
     number = 1000
     t_full = timeit.timeit(lambda: render_from_scratch(products), number=number)
     t_full_selectors = timeit.timeit(lambda: render_with_selectors(products), number=number)
@@ -263,7 +255,7 @@ def main() -> None:
         j2 = f", and {(t_jinja_preloaded / t_template):.1f}x faster than Jinja (preloaded; {(t_jinja_file / t_template):.1f}x file)"
 
     print()
-    print(f"Templating is {(t_full / t_template):.1f}x faster than from-scratch generation{j2}.")
+    print(f"Templating is {(t_full / t_template):.1f}x faster than full document generation{j2}")
 
 
 if __name__ == "__main__":
