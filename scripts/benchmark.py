@@ -1,17 +1,18 @@
-"""Benchmark: stateless Template callable vs. building items from scratch.
-
-Run with:
-
-    uv run python benchmark.py
-
-or, after installing the package in editable form:
-
-    python benchmark.py
-"""
-
+#!/bin/env -S uv run
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [ "html5tagger", "jinja2" ]
+# tool.uv.sources.html5tagger = { path = "../", editable = true }
+# ///
 from __future__ import annotations
 
 import timeit
+from pathlib import Path
+
+try:
+    import jinja2
+except ImportError:
+    jinja2 = None
 
 from html5tagger import Document, E, Template
 
@@ -79,6 +80,17 @@ Page = Template(
     )
 )
 
+# Equivalent Jinja template for comparison (autoescape enabled).
+# Loaded from a file and pretty-formatted, as in normal Jinja use.
+if jinja2 is not None:
+    _jinja_env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(Path(__file__).parent),
+        autoescape=True,
+    )
+    JinjaPage = _jinja_env.get_template("benchmark.html.jinja")
+else:
+    JinjaPage = None
+
 
 def make_products(count: int = 100) -> list[dict[str, str]]:
     categories = ("Electronics", "Clothing", "Home", "Sports", "Books")
@@ -98,6 +110,23 @@ def make_products(count: int = 100) -> list[dict[str, str]]:
 def render_with_template(products: list[dict[str, str]]) -> str:
     """Render using pre-built templates."""
     return Page(Items=[Item(**p) for p in products])
+
+
+def render_with_jinja(products: list[dict[str, str]]) -> str:
+    """Render the same page using a pre-loaded Jinja template (autoescape enabled)."""
+    assert JinjaPage is not None, "Package jinja2 is not installed`"
+    return JinjaPage.render(products=products)
+
+
+def render_with_jinja_runtime(products: list[dict[str, str]]) -> str:
+    """Render the same page by loading the Jinja template at runtime each call."""
+    assert jinja2 is not None, "Package jinja2 is not installed`"
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(Path(__file__).parent),
+        autoescape=True,
+    )
+    template = env.get_template("benchmark.html.jinja")
+    return template.render(products=products)
 
 
 def render_from_scratch(products: list[dict[str, str]]) -> str:
@@ -198,27 +227,35 @@ def main() -> None:
     html_selectors = render_with_selectors(products)
     assert html_template == html_scratch == html_selectors, "Outputs differ!"
 
-    print(f"Generated HTML length: {len(html_template)} bytes")
-    print(f"Number of products:    {len(products)}")
-    print()
-
+    html_jinja = render_with_jinja(products) if jinja2 is not None else None
+    jinja_len = f" (Jinja {len(html_jinja)} bytes)" if html_jinja is not None else ""
+    print(f"Generated HTML length:  {len(html_template)} bytes{jinja_len}")
+    print(f"Product items on page:  {len(products)}\n")
     number = 1000
+    t_full = timeit.timeit(lambda: render_from_scratch(products), number=number)
+    t_full_selectors = timeit.timeit(lambda: render_with_selectors(products), number=number)
     t_template = timeit.timeit(lambda: render_with_template(products), number=number)
-    t_scratch = timeit.timeit(lambda: render_from_scratch(products), number=number)
-    t_selectors = timeit.timeit(lambda: render_with_selectors(products), number=number)
+
+    def row(label: str, t: float) -> str:
+        return f"  {label:<29} {t * 1000 / number:8.3f} ms  ({t * 1_000_000 / number / len(products):2.0f} µs/item)"
 
     print(f"Single page render time (averaged over {number} renders):")
-    print(
-        f"  Template callable:  {t_template * 1000 / number:8.3f} ms  ({t_template * 1_000_000 / number / len(products):.2f} µs/item)"
-    )
-    print(
-        f"  Build from scratch: {t_scratch * 1000 / number:8.3f} ms  ({t_scratch * 1_000_000 / number / len(products):.2f} µs/item)"
-    )
-    print(
-        f"  With CSS selectors: {t_selectors * 1000 / number:8.3f} ms  ({t_selectors * 1_000_000 / number / len(products):.2f} µs/item)"
-    )
+    print(row("Full generation:", t_full))
+    print(row("Full generation w/ selectors:", t_full_selectors))
+    print(row("Template:", t_template))
+
+    t_jinja_file = t_jinja_preloaded = 0
+    j2 = ""
+    if jinja2 is not None:
+        print("\nJinja for comparison:")
+        t_jinja_file = timeit.timeit(lambda: render_with_jinja_runtime(products), number=number)
+        print(row("Template file:", t_jinja_file))
+        t_jinja_preloaded = timeit.timeit(lambda: render_with_jinja(products), number=number)
+        print(row("Template preloaded:", t_jinja_preloaded))
+        j2 = f", and {(t_jinja_preloaded / t_template):.1f}x faster than Jinja (preloaded; {(t_jinja_file / t_template):.1f}x file)"
+
     print()
-    print(f"Template is {t_scratch / t_template:.1f}x faster than building from scratch")
+    print(f"Templating is {(t_full / t_template):.1f}x faster than full document generation{j2}")
 
 
 if __name__ == "__main__":

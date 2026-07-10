@@ -4,7 +4,7 @@
 ![Tests](https://raw.githubusercontent.com/sanic-org/html5tagger/main/docs/img/tests-badge.svg)
 ![Coverage](https://raw.githubusercontent.com/sanic-org/html5tagger/main/docs/img/coverage-badge.svg)
 
-If you're looking for a more efficient and streamlined way to generate HTML5, look no further than html5tagger! This is a super fast HTML generation module that can run faster than Jinja2. But the main difference is you'll be writing HTML tags with Python syntax, from your code. No special templating language control structures and no typing in HTML.
+If you're looking for a more efficient and streamlined way to generate HTML5, look no further than html5tagger! This is a super fast HTML generation module that can run faster than Jinja. But the main difference is you'll be writing HTML tags with Python syntax, from your code. No special templating language control structures and no typing in HTML.
 
 Use [UV](https://docs.astral.sh/uv/getting-started/installation/) to add it to your project dependencies:
 
@@ -228,6 +228,16 @@ All content is automatically escaped, unless it provides an `__html__` method th
 Any preformatted HTML may be wrapped in `html5tagger.HTML(string_of_html)` to avoid it being escaped when included in a document, as the HTML class has those accessors.
 
 ⚠️ Do not use `HTML()` for text, in particular not on messages sent by users, that may contain HTML that you didn't intend to execute as HTML.
+
+## Performance
+
+We benchmark rendering of a medium-sized product listing page in various modes, with Jinja for reference. The rendering time goes up to 1.5ms with full document regeneration each time, and drops to **0.2ms with templating**, although depending on how dynamic the document is this difference may vary.
+
+This suggests that even generation from scratch likely runs faster than an SQL query (10ms) and, with templating, faster than FastAPI itself (1ms, empty handler).
+
+Our template implementation benchmarks 1.2x faster than Jinja, or 4.6x faster if Jinja needs to load the template from file (cached). The Jinja document is larger due to whitespace needed for formatting and more verbose escaping rules, meaning it transfers to the client more slowly as well. We tried without whitespace for comparison, and the rendering time was not measurably different, but editing the template becomes hard.
+
+The benchmark script is included in the source repository. All the values quoted are single CPU. High performance Python web frameworks like Sanic can reach 10 000+ req/s with html5tagger included, using multiple workers.
 
 ## Further development
 

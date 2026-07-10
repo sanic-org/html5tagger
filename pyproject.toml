@@ -12,7 +12,7 @@ authors = [
     { name = "Sanic Community", email = "tronic@noreply.users.github.com" },
 ]
 requires-python = ">=3.10"
-keywords = ["HTML", "HTML5", "templating", "Jinja2"]
+keywords = ["HTML", "HTML5", "templating", "Jinja"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -35,14 +35,15 @@ Repository = "https://github.com/sanic-org/html5tagger"
 Issues = "https://github.com/sanic-org/html5tagger/issues"
 
 [dependency-groups]
-dev = ["nox"]
+dev = [
+    "nox",
+]
 test = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "ruff>=0.14.9",
     "ty>=0.0.7",
 ]
-
 [tool.hatch.version]
 source = "vcs"
 

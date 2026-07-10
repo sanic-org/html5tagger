@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Shop</title>
+<link href="style.css" rel="stylesheet">
+<script src="app.js" defer></script>
+
+<header class="site-header">
+  <div class="container">
+    <a class="logo" href="/">Shop</a>
+    <nav class="main-nav">
+      <a href="/">Home</a>
+      <a href="/products">Products</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+  </div>
+</header>
+<main class="main">
+  <div class="container">
+    <aside class="sidebar">
+      <h2>Categories</h2>
+      <ul>
+        <li>Electronics</li>
+        <li>Clothing</li>
+        <li>Home & Garden</li>
+        <li>Sports</li>
+        <li>Books</li>
+      </ul>
+    </aside>
+    <section class="content">
+      <h1>Products</h1>
+      <div class="product-grid">
+        {% for p in products %}
+          <article class="product-card" data-sku="{{ p.SKU }}">
+            <div class="product-image">
+              <span class="placeholder">{{ p.Initial }}</span>
+            </div>
+            <div class="product-body">
+              <h3 class="product-name">{{ p.Name }}</h3>
+              <p class="product-desc">{{ p.Desc }}</p>
+              <div class="product-meta">
+                <span class="product-price">{{ p.Price }}</span>
+                <span class="product-stock">{{ p.Stock }}</span>
+              </div>
+              <a class="product-detail" href="/product/view">Details</a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</main>
+<footer class="site-footer">
+  <div class="container">
+    <p>&copy; 2026 Shop. All rights reserved.</p>
+  </div>
+</footer>
