@@ -1,10 +1,9 @@
-"""Benchmark: stateless Template callable vs. building items from scratch.
-
-Run with:
-    uv sync --group benchmark
-    uv run python benchmark.py
-"""
-
+#!/bin/env -S uv run
+# /// script
+# requires-python = ">=3.10"
+# dependencies = [ "html5tagger", "jinja2" ]
+# tool.uv.sources.html5tagger = { path = "../", editable = true }
+# ///
 from __future__ import annotations
 
 import timeit

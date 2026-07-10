@@ -44,9 +44,6 @@ test = [
     "ruff>=0.14.9",
     "ty>=0.0.7",
 ]
-benchmark = [
-    "jinja2>=3.1.6",
-]
 [tool.hatch.version]
 source = "vcs"
 
