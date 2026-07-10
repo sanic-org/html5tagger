@@ -231,11 +231,11 @@ Any preformatted HTML may be wrapped in `html5tagger.HTML(string_of_html)` to av
 
 ## Performance
 
-We benchmark rendering of a medium sized product listing page in various modes and with Jinja for reference. The rendering time goes up to 1.5ms with full document regeneration each time, and drops to **0.2ms with templating**, although depending on how dynamic the document is this difference may vary.
+We benchmark rendering of a medium-sized product listing page in various modes, with Jinja for reference. The rendering time goes up to 1.5ms with full document regeneration each time, and drops to **0.2ms with templating**, although depending on how dynamic the document is this difference may vary.
 
-This suggests that even generation from scratch it runs likely faster than an SQL query (10ms) and with templating faster than FastAPI itself (1ms, empty handler).
+This suggests that even generation from scratch likely runs faster than an SQL query (10ms) and, with templating, faster than FastAPI itself (1ms, empty handler).
 
-Our template implementation benchmarks 1.2x faster than Jinja, or 4.6x faster if Jinja needs to load the template from file (cached). Jinja document is larger due to whitespace needed for formatting and more verbose escaping rules, meaning it transfers to client slower as well. We tried without whitespace for comparison, and the rendering time was not measurably different, but editing the template becomes hard.
+Our template implementation benchmarks 1.2x faster than Jinja, or 4.6x faster if Jinja needs to load the template from file (cached). The Jinja document is larger due to whitespace needed for formatting and more verbose escaping rules, meaning it transfers to the client more slowly as well. We tried without whitespace for comparison, and the rendering time was not measurably different, but editing the template becomes hard.
 
 The benchmark script is included in the source repository. All the values quoted are single CPU. High performance Python web frameworks like Sanic can reach 10 000+ req/s with html5tagger included, using multiple workers.
 
