@@ -241,6 +241,6 @@ The benchmark script is included in the source repository. All the values quoted
 
 ## Further development
 
-There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable with only small incremental changes like the `script` and `style` special methods being added.
+There have been no changes to the tagging API since 2018 when this module was brought to production use, and thus the interface is considered stable with only small incremental changes while maintaining the generation API otherwise stable, only adding features like the `[]` operator in recent versions, and generic modernisation.
 
-The templating API added as a draft in version 1.3 is deprecated as of version 1.4 and is removed in 2.0, where it is replaced by a redesigned templating system. Users who depend on the old templating behaviour should pin `html5tagger<2`; all others are encouraged to upgrade to 2.0 which is faster and more versatile.
+The templating API added as a draft in version 1.3 has been removed in 2.0, where it is replaced by a redesigned templating system that runs faster and is more versatile. This is also now assumed to be similarly stable as the generation side, only seeing incremental improvements.
