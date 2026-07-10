@@ -114,8 +114,7 @@ def render_with_template(products: list[dict[str, str]]) -> str:
 
 def render_with_jinja(products: list[dict[str, str]]) -> str:
     """Render the same page using a pre-loaded Jinja template (autoescape enabled)."""
-    if JinjaPage is None:
-        raise RuntimeError("Jinja is not installed; run `uv add --group dev jinja2` or `pip install jinja2`")
+    assert JinjaPage is not None, "Package jinja2 is not installed`"
     return JinjaPage.render(products=products)
 
 
